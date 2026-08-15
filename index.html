@@ -1,0 +1,4252 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Black Coffee — أطلس القهوة</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Tajawal:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ink:#0b2545;
+    --ink-2:#123a63;
+    --ink-3:#1b4e7e;
+    --paper:#ffffff;
+    --paper-2:#eaf4fb;
+    --brass:#3fa9dc;
+    --brass-light:#7fd1f5;
+    --wine:#0b6fa8;
+    --wine-light:#2e86ab;
+    --line: rgba(255,255,255,0.14);
+    --line-strong: rgba(255,255,255,0.28);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Tajawal',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    position:relative;
+  }
+  /* subtle paper grain over everything */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events:none;
+    z-index:1;
+    mix-blend-mode:overlay;
+  }
+  .fade-in{ animation:fadeUp .7s ease both; }
+  .fade-in.d1{ animation-delay:.08s; }
+  .fade-in.d2{ animation-delay:.16s; }
+  .fade-in.d3{ animation-delay:.24s; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:translateY(0);} }
+  @media (prefers-reduced-motion: reduce){ .fade-in{ animation:none; } }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    padding:52px 24px 30px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+    border-bottom:1px solid var(--line);
+  }
+  .hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      radial-gradient(ellipse 60% 40% at 15% 0%, rgba(63,169,220,0.16), transparent 60%),
+      radial-gradient(ellipse 50% 50% at 100% 100%, rgba(11,111,168,0.18), transparent 55%);
+    pointer-events:none;
+  }
+  /* coffee ring stain, purely decorative */
+  .ring-stain{
+    position:absolute;
+    width:180px; height:180px;
+    border:10px solid rgba(63,169,220,0.06);
+    border-radius:50%;
+    top:-60px; left:-50px;
+    pointer-events:none;
+  }
+  .ring-stain.b{
+    width:120px; height:120px; border-width:7px;
+    border-color:rgba(11,111,168,0.10);
+    top:auto; bottom:-40px; left:auto; right:6%;
+  }
+  .eyebrow{
+    font-family:'Space Mono',monospace;
+    letter-spacing:.32em;
+    text-transform:uppercase;
+    font-size:10.5px;
+    color:var(--brass-light);
+    margin-bottom:16px;
+    position:relative;
+  }
+  .eyebrow::before, .eyebrow::after{ content:"—"; margin:0 8px; opacity:.5; }
+  h1.title{
+    font-family:'Fraunces',serif;
+    font-optical-sizing:auto;
+    font-weight:600;
+    font-size:clamp(36px,9vw,58px);
+    margin:0 0 12px;
+    color:var(--paper);
+    position:relative;
+    letter-spacing:-.01em;
+  }
+  h1.title span{ color:var(--brass-light); font-style:italic; font-weight:500; }
+  .bio{
+    font-size:14.5px;
+    color:rgba(255,255,255,0.6);
+    max-width:380px;
+    margin:0 auto;
+    line-height:1.9;
+    position:relative;
+  }
+  .stat-row{
+    display:flex; justify-content:center; gap:0;
+    margin-top:26px; position:relative;
+  }
+  .stat{ padding:0 22px; border-left:1px solid var(--line); }
+  .stat:first-child{ border-left:none; }
+  .stat b{ display:block; font-family:'Fraunces',serif; font-size:22px; color:var(--brass-light); font-weight:600; }
+  .stat span{ font-size:10px; color:rgba(255,255,255,0.45); letter-spacing:.1em; font-family:'Space Mono',monospace; }
+
+  /* ---------- STAMPS (city selector) ---------- */
+  .stamps-wrap{ padding:30px 16px 4px; position:relative; }
+  .stamps-label{
+    text-align:center; font-size:11px; letter-spacing:.2em;
+    color:rgba(255,255,255,0.4); margin-bottom:18px;
+    font-family:'Space Mono',monospace; text-transform:uppercase;
+  }
+  .stamps{
+    display:flex; gap:18px; overflow-x:auto;
+    padding:10px 12px 20px; scroll-snap-type:x proximity;
+  }
+  .stamps::-webkit-scrollbar{height:3px;}
+  .stamps::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+  .stamp{
+    flex:0 0 auto; width:98px; height:98px; border-radius:50%;
+    border:2.5px solid rgba(230,195,116,0.35);
+    background:radial-gradient(circle at 35% 30%, var(--ink-3), var(--ink-2));
+    color:var(--paper);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    cursor:pointer; font-family:'Fraunces',serif; font-size:13.5px; font-weight:500;
+    transition:transform .25s cubic-bezier(.34,1.56,.64,1), border-color .2s, box-shadow .2s;
+    scroll-snap-align:start; position:relative;
+    transform:rotate(var(--rot,0deg));
+  }
+  .stamp:nth-child(2n){ --rot:-3deg; }
+  .stamp:nth-child(3n){ --rot:2deg; }
+  .stamp:nth-child(5n){ --rot:-1.5deg; }
+  .stamp .flag{ font-size:19px; }
+  .stamp .count{ font-family:'Space Mono',monospace; font-size:9px; color:rgba(255,255,255,0.4); letter-spacing:.03em; }
+  .stamp:hover{ transform:rotate(var(--rot,0deg)) translateY(-4px); border-color:var(--brass-light); }
+  .stamp.active{
+    background:radial-gradient(circle at 35% 30%, var(--brass-light), var(--brass));
+    border-color:var(--wine);
+    color:var(--ink);
+    transform:rotate(0deg) scale(1.06);
+    box-shadow:0 8px 22px rgba(63,169,220,0.25);
+  }
+  .stamp.active .count{ color:rgba(24,28,38,0.6); }
+  .stamp.active::after{
+    content:"✓";
+    position:absolute; bottom:6px; right:10px;
+    font-size:11px; color:var(--wine);
+  }
+
+  /* ---------- MAP ---------- */
+  .map-shell{
+    margin:10px 16px 0; border-radius:20px; overflow:hidden;
+    border:1px solid var(--line-strong); height:330px;
+    box-shadow:0 20px 40px -20px rgba(0,0,0,0.6);
+  }
+  #map{ height:100%; width:100%; }
+
+  /* ---------- CAFE LIST (boarding pass style) ---------- */
+  .list-wrap{ padding:26px 16px 60px; }
+  .list-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:16px; }
+  .list-title{ font-family:'Fraunces',serif; font-size:21px; margin:0; color:var(--paper); font-weight:600; }
+  .list-sub{ font-size:11px; color:rgba(255,255,255,0.4); font-family:'Space Mono',monospace; }
+
+  .ticket{
+    position:relative;
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:12px;
+    margin-bottom:22px;
+    display:flex;
+    box-shadow:0 14px 28px -14px rgba(0,0,0,0.55);
+    overflow:visible;
+  }
+  .ticket-main{
+    flex:1; padding:16px 18px;
+    display:flex; flex-direction:column; gap:8px;
+    min-width:0;
+  }
+  .ticket-code{
+    font-family:'Space Mono',monospace; font-size:10px;
+    color:var(--wine); letter-spacing:.08em;
+  }
+  .ticket-name{
+    font-family:'Fraunces',serif; font-size:19px; font-weight:600;
+    color:var(--ink); line-height:1.2;
+  }
+  .ticket-city{ font-size:12px; color:#5a7590; }
+  .ticket-actions{ display:flex; gap:8px; margin-top:6px; align-items:center; }
+  .edit-btn{
+    display:none; margin-inline-start:auto;
+    background:none; border:1.5px solid rgba(11,37,69,0.18); border-radius:12px;
+    width:28px; height:28px; font-size:12px; cursor:pointer; color:var(--ink);
+  }
+  .edit-btn.show{ display:inline-flex; align-items:center; justify-content:center; }
+  .edit-btn:hover{ background:var(--paper-2); }
+  .likes-tag{
+    font-family:'Space Mono',monospace; font-size:10.5px; color:#5a7590;
+    white-space:nowrap;
+  }
+  .btn{
+    font-family:'Tajawal',sans-serif; font-size:12px; font-weight:700;
+    padding:8px 14px; border-radius:20px; border:1.5px solid var(--ink);
+    background:transparent; color:var(--ink); text-decoration:none;
+    white-space:nowrap; transition:background .15s, color .15s;
+  }
+  .btn.tiktok{ background:var(--ink); color:var(--paper); }
+  .btn.tiktok:hover{ background:var(--wine); border-color:var(--wine); }
+  .btn.gmaps:hover{ background:var(--ink); color:var(--paper); }
+
+  .ticket-stub{
+    flex:0 0 78px;
+    border-right:2px dashed rgba(24,28,38,0.25);
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  .stub-num{
+    font-family:'Space Mono',monospace; font-size:11px;
+    writing-mode:vertical-rl; text-orientation:mixed;
+    color:var(--wine); letter-spacing:.08em; font-weight:700;
+  }
+  /* notch circles to fake ticket tear */
+  .ticket::before, .ticket::after{
+    content:""; position:absolute; width:16px; height:16px;
+    background:var(--ink); border-radius:50%;
+    right:78px; margin-right:-8px;
+  }
+  .ticket::before{ top:-8px; }
+  .ticket::after{ bottom:-8px; }
+
+  /* leaflet popup theming */
+  .leaflet-popup-content-wrapper{ background:var(--paper); color:var(--ink); border-radius:10px; }
+  .leaflet-popup-tip{ background:var(--paper); }
+  .popup-title{ font-family:'Fraunces',serif; font-size:15px; margin-bottom:6px; font-weight:600; }
+  .popup-actions{ display:flex; gap:6px; margin-top:8px; }
+  .popup-actions a{
+    font-family:'Tajawal',sans-serif; font-size:11px; font-weight:700;
+    padding:5px 10px; border-radius:14px; border:1.5px solid var(--ink);
+    color:var(--ink); text-decoration:none;
+  }
+  .popup-actions a.tiktok{ background:var(--ink); color:var(--paper); }
+
+  /* ---------- STARS ---------- */
+  .stars-row{ display:flex; align-items:center; gap:8px; margin-top:2px; }
+  .stars{ display:flex; gap:2px; direction:ltr; }
+  .star{
+    font-size:16px; cursor:pointer; color:rgba(24,28,38,0.22);
+    transition:transform .12s ease, color .12s ease;
+    line-height:1;
+  }
+  .star:hover{ transform:scale(1.18); }
+  .star.filled{ color:var(--wine); }
+  .rating-meta{
+    font-family:'Space Mono',monospace; font-size:10px; color:#5a7590;
+  }
+  .rated-thanks{ font-size:10px; color:var(--wine); font-family:'Space Mono',monospace; }
+
+  .rate-panel{
+    display:none; align-items:center; gap:6px; margin-top:6px;
+  }
+  .rate-panel.show{ display:flex; }
+  .comment-input{
+    flex:1; min-width:0;
+    font-family:'Tajawal',sans-serif; font-size:11.5px;
+    padding:6px 10px; border-radius:14px;
+    border:1.5px solid rgba(11,37,69,0.18);
+    background:var(--paper-2); color:var(--ink);
+  }
+  .comment-input:focus{ outline:none; border-color:var(--brass); }
+  .confirm-btn{
+    font-family:'Tajawal',sans-serif; font-size:11.5px; font-weight:700;
+    padding:6px 12px; border-radius:14px; border:none;
+    background:var(--wine); color:#fff; cursor:pointer; white-space:nowrap;
+  }
+  .confirm-btn:hover{ background:var(--brass); }
+
+  /* ---------- SPONSOR SECTION ---------- */
+  .sponsor{
+    margin:8px 16px 0;
+    background:linear-gradient(155deg, var(--ink-3), var(--ink-2));
+    border:1px solid var(--line-strong);
+    border-radius:18px;
+    padding:26px 22px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .sponsor::before{
+    content:"☕";
+    position:absolute; font-size:120px; opacity:.04;
+    top:-30px; left:-20px; transform:rotate(-12deg);
+  }
+  .sponsor-eyebrow{
+    font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.25em;
+    color:var(--brass-light); text-transform:uppercase; margin-bottom:10px;
+  }
+  .sponsor h3{
+    font-family:'Fraunces',serif; font-size:22px; font-weight:600;
+    margin:0 0 8px; color:var(--paper); position:relative;
+  }
+  .sponsor p{
+    font-size:13px; color:rgba(255,255,255,0.6); max-width:340px;
+    margin:0 auto 18px; line-height:1.8; position:relative;
+  }
+  .sponsor-email{
+    display:inline-flex; align-items:center; gap:10px;
+    background:var(--paper); color:var(--ink);
+    padding:10px 18px; border-radius:24px;
+    font-family:'Space Mono',monospace; font-size:12.5px; font-weight:700;
+    position:relative; cursor:pointer; border:none;
+  }
+  .sponsor-email:hover{ background:var(--brass-light); }
+  .sponsor-copied{
+    font-size:10.5px; color:var(--brass-light); margin-top:10px;
+    font-family:'Space Mono',monospace; opacity:0; transition:opacity .2s; position:relative;
+  }
+  .sponsor-copied.show{ opacity:1; }
+
+  .footer-note{
+    text-align:center; font-size:11px; color:rgba(255,255,255,0.32);
+    padding:22px 24px 8px; line-height:1.9; font-family:'Space Mono',monospace;
+    position:relative;
+  }
+
+  /* ---------- OWNER MODE ---------- */
+  .owner-link{
+    display:block; text-align:center; font-size:10.5px;
+    color:rgba(255,255,255,0.28); font-family:'Space Mono',monospace;
+    padding:0 24px 36px; background:none; border:none; margin:0 auto;
+    cursor:pointer; text-decoration:underline; text-underline-offset:3px;
+  }
+  .owner-link:hover{ color:var(--brass-light); }
+
+  .fab-add{
+    position:fixed; bottom:22px; left:22px; z-index:40;
+    width:54px; height:54px; border-radius:50%;
+    background:var(--wine); color:#fff; border:none;
+    font-size:26px; line-height:1; box-shadow:0 10px 24px rgba(11,111,168,0.45);
+    cursor:pointer; display:none; align-items:center; justify-content:center;
+  }
+  .fab-add.show{ display:flex; }
+  .fab-add:hover{ background:var(--brass); }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(11,37,69,0.72);
+    z-index:2000; display:none; align-items:flex-end; justify-content:center;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{
+    background:var(--paper); color:var(--ink); width:100%; max-width:480px;
+    border-radius:22px 22px 0 0; padding:24px 22px 28px;
+    max-height:82vh; overflow-y:auto;
+  }
+  .modal-box h4{
+    font-family:'Fraunces',serif; font-size:19px; margin:0 0 4px; text-align:right;
+  }
+  .modal-sub{ font-size:12px; color:#5a7590; text-align:right; margin:0 0 16px; }
+  .field{ margin-bottom:12px; text-align:right; }
+  .field label{ display:block; font-size:11.5px; color:#5a7590; margin-bottom:4px; font-family:'Space Mono',monospace; }
+  .field input, .field select{
+    width:100%; font-family:'Tajawal',sans-serif; font-size:13.5px;
+    padding:10px 12px; border-radius:12px; border:1.5px solid rgba(11,37,69,0.18);
+    background:var(--paper-2); color:var(--ink); text-align:right;
+  }
+  .field input:focus, .field select:focus{ outline:none; border-color:var(--brass); }
+  .modal-actions{ display:flex; gap:10px; margin-top:6px; }
+  .modal-btn{
+    flex:1; font-family:'Tajawal',sans-serif; font-size:13.5px; font-weight:700;
+    padding:11px; border-radius:14px; border:none; cursor:pointer;
+  }
+  .modal-btn.save{ background:var(--wine); color:#fff; }
+  .modal-btn.save:hover{ background:var(--brass); }
+  .modal-btn.cancel{ background:var(--paper-2); color:var(--ink); }
+  .modal-msg{ font-size:12px; text-align:center; margin-top:10px; color:var(--wine); }
+
+  /* ---------- SEARCH ---------- */
+  .search-wrap{ padding:4px 16px 4px; position:relative; z-index:200; }
+  .search-box{
+    display:flex; align-items:center; gap:8px;
+    background:var(--ink-2); border:1.5px solid var(--line-strong);
+    border-radius:24px; padding:10px 16px;
+  }
+  .search-box svg{ flex:0 0 auto; opacity:.5; }
+  .search-box input{
+    flex:1; background:none; border:none; outline:none;
+    font-family:'Tajawal',sans-serif; font-size:14px; color:#fff;
+    text-align:right;
+  }
+  .search-box input::placeholder{ color:rgba(255,255,255,0.4); }
+  .search-clear{
+    background:none; border:none; color:rgba(255,255,255,0.5);
+    font-size:16px; cursor:pointer; display:none;
+  }
+  .search-results{
+    position:absolute; left:16px; right:16px; top:calc(100% - 2px);
+    background:var(--paper); border-radius:14px; overflow:hidden;
+    box-shadow:0 16px 32px -12px rgba(0,0,0,0.5);
+    z-index:1000; display:none; max-height:280px; overflow-y:auto;
+  }
+  .search-results.show{ display:block; }
+  .search-result-item{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:11px 16px; border-bottom:1px solid rgba(11,37,69,0.08);
+    cursor:pointer; color:var(--ink);
+  }
+  .search-result-item:last-child{ border-bottom:none; }
+  .search-result-item:hover{ background:var(--paper-2); }
+  .search-result-name{ font-family:'Fraunces',serif; font-size:14px; font-weight:600; }
+  .search-result-city{ font-size:11px; color:#5a7590; font-family:'Space Mono',monospace; }
+  .search-empty{ padding:16px; text-align:center; font-size:12.5px; color:#5a7590; }
+
+  @keyframes cardPulse{
+    0%{ box-shadow:0 0 0 0 rgba(63,169,220,0.55); }
+    70%{ box-shadow:0 0 0 14px rgba(63,169,220,0); }
+    100%{ box-shadow:0 0 0 0 rgba(63,169,220,0); }
+  }
+  .ticket.highlight{ animation:cardPulse 1.1s ease-out 2; }
+
+  /* ---------- SUGGEST A CAFE (visitors) ---------- */
+  .suggest-fab{
+    display:flex; width:calc(100% - 32px); margin:0 16px 12px; box-sizing:border-box;
+    background:var(--ink-2); color:var(--brass-light);
+    border:1.5px solid var(--line-strong); border-radius:16px;
+    padding:12px 16px; font-family:'Tajawal',sans-serif; font-size:13px; font-weight:700;
+    cursor:pointer; align-items:center; justify-content:center; gap:6px;
+    box-shadow:0 6px 14px rgba(0,0,0,0.25);
+  }
+  .suggest-fab:hover{ background:var(--brass); color:var(--ink); border-color:var(--brass); }
+
+  .inbox-fab{
+    position:fixed; bottom:22px; left:88px; z-index:40;
+    width:54px; height:54px; border-radius:50%;
+    background:var(--ink-2); color:var(--brass-light); border:1.5px solid var(--line-strong);
+    font-size:20px; cursor:pointer; display:none; align-items:center; justify-content:center;
+    box-shadow:0 10px 24px rgba(0,0,0,0.4);
+  }
+  .inbox-fab.show{ display:flex; }
+  .inbox-badge{
+    position:absolute; top:-4px; right:-4px; background:var(--wine); color:#fff;
+    font-family:'Space Mono',monospace; font-size:10px; border-radius:50%;
+    width:19px; height:19px; display:flex; align-items:center; justify-content:center;
+  }
+  .suggestion-item{
+    background:var(--paper-2); border-radius:12px; padding:12px 14px; margin-bottom:10px;
+    text-align:right;
+  }
+  .suggestion-item .s-name{ font-family:'Fraunces',serif; font-weight:600; font-size:14.5px; color:var(--ink); }
+  .suggestion-item .s-meta{ font-size:11px; color:#5a7590; margin:2px 0 6px; font-family:'Space Mono',monospace; }
+  .suggestion-item .s-note{ font-size:12.5px; color:var(--ink); margin-bottom:8px; line-height:1.6; }
+  .suggestion-actions{ display:flex; gap:8px; }
+  .s-btn{
+    font-family:'Tajawal',sans-serif; font-size:11.5px; font-weight:700;
+    padding:6px 12px; border-radius:12px; border:none; cursor:pointer;
+  }
+  .s-btn.use{ background:var(--wine); color:#fff; }
+  .s-btn.dismiss{ background:#e6ecf1; color:var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="hero fade-in">
+  <div class="ring-stain"></div>
+  <div class="ring-stain b"></div>
+  <h1 class="title">Black <span>Coffee</span></h1>
+  <p class="bio">كل ما هُنا للقهوة لا أكثر ☕ — أطلس صغير لكل قهوة جربناها حول العالم🤍</p>
+  <div class="stat-row">
+    <div class="stat"><b id="statCities">0</b><span>مدن</span></div>
+    <div class="stat"><b id="statCafes">0</b><span>قهاوي</span></div>
+    <div class="stat"><b id="statLikes">28K</b><span>لايك</span></div>
+  </div>
+</div>
+
+<div class="stamps-wrap fade-in d1">
+  <div class="stamps-label">اختر وجهتك</div>
+  <div class="stamps" id="stamps"></div>
+</div>
+
+<div class="search-wrap fade-in d1">
+  <div class="search-box">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="searchInput" placeholder="ابحث باسم القهوة... هل انضافت؟">
+    <button class="search-clear" id="searchClear">✕</button>
+  </div>
+  <div class="search-results" id="searchResults"></div>
+</div>
+
+<button class="suggest-fab fade-in d1" id="suggestFab">💡 ما لقيت قهوتك؟ اقترحها علينا</button>
+
+<div class="map-shell fade-in d2">
+  <div id="map"></div>
+</div>
+
+<div class="list-wrap fade-in d3">
+  <div class="list-head">
+    <p class="list-title" id="listTitle">قهاوي</p>
+    <span class="list-sub" id="listSub"></span>
+  </div>
+  <div id="cafeList"></div>
+</div>
+
+<div class="sponsor fade-in">
+  <div class="sponsor-eyebrow">تسويق وشراكات</div>
+  <h3>قهوتك تستاهل تكون هنا؟</h3>
+  <p>مساحة لظهور المقاهي الداعمة، للتعاون والشراكات راسلنا على البريد أدناه</p>
+  <button class="sponsor-email" id="sponsorEmailBtn">
+    <span>✉️</span><span id="sponsorEmailText">sponsor@blackcoffee.sa</span>
+  </button>
+  <div class="sponsor-copied" id="sponsorCopied">تم نسخ الإيميل ✓</div>
+</div>
+
+<p class="footer-note">
+  جميع الزيارات للمقاهي بالأطلس موثّقة في حساب @blackcoffee.sa، والإحداثيات على الخريطة تقريبية، بالإمكان إيجاد الموقع برابط قوقل ماب عند كل قهوة
+</p>
+<button class="owner-link" id="ownerLink">🔒 وضع المالك</button>
+
+<button class="fab-add" id="fabAdd">+</button>
+<button class="inbox-fab" id="inboxFab">📬<span class="inbox-badge" id="inboxBadge" style="display:none">0</span></button>
+
+<!-- Suggest-a-cafe modal (visitors) -->
+<div class="modal-overlay" id="suggestOverlay">
+  <div class="modal-box">
+    <h4>اقترح لنا قهوتك المفضلة</h4>
+    <p class="modal-sub">نزورها ونقيّمها بأنفسنا</p>
+    <div class="field">
+      <label>اسم القهوة</label>
+      <input type="text" id="sugName" placeholder="اسم المقهى">
+    </div>
+    <div class="field">
+      <label>المدينة</label>
+      <input type="text" id="sugCity" placeholder="مثال: الرياض">
+    </div>
+    <div class="field">
+      <label>رابط قوقل ماب (اختياري)</label>
+      <input type="text" id="sugGmaps" placeholder="https://www.google.com/maps/...">
+    </div>
+    <div class="field">
+      <label>ليه تقترحها؟ (اختياري)</label>
+      <input type="text" id="sugNote" placeholder="مثال: قهوتهم مميزة جدًا">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn save" id="sugSubmit">إرسال الاقتراح</button>
+      <button class="modal-btn cancel" id="sugCancel">إلغاء</button>
+    </div>
+    <p class="modal-msg" id="sugMsg"></p>
+  </div>
+</div>
+
+<!-- Owner: suggestions inbox -->
+<div class="modal-overlay" id="inboxOverlay">
+  <div class="modal-box">
+    <h4>اقتراحات الزوار</h4>
+    <p class="modal-sub">مرئية لك فقط</p>
+    <div id="inboxList"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="inboxClose">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN modal -->
+<div class="modal-overlay" id="pinOverlay">
+  <div class="modal-box">
+    <h4>دخول وضع المالك</h4>
+    <p class="modal-sub">هذا القسم مخصص لك فقط — أدخل الرمز</p>
+    <div class="field">
+      <label>الرمز السري</label>
+      <input type="password" id="pinInput" inputmode="numeric" placeholder="••••">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn save" id="pinSubmit">دخول</button>
+      <button class="modal-btn cancel" id="pinCancel">إلغاء</button>
+    </div>
+    <p class="modal-msg" id="pinMsg"></p>
+  </div>
+</div>
+
+<!-- Add cafe modal -->
+<div class="modal-overlay" id="addOverlay">
+  <div class="modal-box">
+    <h4>إضافة قهوة جديدة</h4>
+    <p class="modal-sub">تظهر فورًا للجميع على الخريطة</p>
+    <div class="field">
+      <label>اسم المكان</label>
+      <input type="text" id="newName" placeholder="مثال: Deki Coffee">
+    </div>
+    <div class="field">
+      <label>المدينة</label>
+      <select id="newCity"></select>
+    </div>
+    <div class="field" id="newCityOtherField" style="display:none">
+      <label>اسم المدينة الجديدة</label>
+      <input type="text" id="newCityOther" placeholder="مثال: مكة">
+    </div>
+    <div class="field">
+      <label>رابط قوقل ماب</label>
+      <input type="text" id="newGmaps" placeholder="https://www.google.com/maps/...">
+    </div>
+    <div class="field">
+      <label>رابط الفيديو بتيك توك (اختياري)</label>
+      <input type="text" id="newTiktok" placeholder="افتراضيًا رابط حسابك">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn save" id="addSubmit">حفظ وإضافة</button>
+      <button class="modal-btn cancel" id="addCancel">إلغاء</button>
+    </div>
+    <p class="modal-msg" id="addMsg"></p>
+  </div>
+</div>
+
+<!-- Edit cafe links modal -->
+<div class="modal-overlay" id="editOverlay">
+  <div class="modal-box">
+    <h4 id="editTitle">تعديل روابط القهوة</h4>
+    <p class="modal-sub">تحديث فوري لجميع الزوار</p>
+    <div class="field">
+      <label>رابط قوقل ماب</label>
+      <input type="text" id="editGmaps" placeholder="https://www.google.com/maps/...">
+    </div>
+    <div class="field">
+      <label>رابط الفيديو بتيك توك</label>
+      <input type="text" id="editTiktok" placeholder="https://www.tiktok.com/...">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn save" id="editSubmit">حفظ التعديل</button>
+      <button class="modal-btn cancel" id="editCancel">إلغاء</button>
+    </div>
+    <p class="modal-msg" id="editMsg"></p>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   🔧 عدّلي بياناتك هنا
+   ========================================================= */
+const SPONSOR_EMAIL = "LAMYABINHASSAN@gmail.com";
+const OWNER_PIN = "2580"; // 🔧 غيّري هذا الرمز لرقم سري تختارينه
+const FIREBASE_URL = "https://black-coffee-atlas-default-rtdb.europe-west1.firebasedatabase.app";
+
+async function fbGet(path){
+  try{
+    const res = await fetch(`${FIREBASE_URL}/${path}.json`);
+    const data = await res.json();
+    return data;
+  }catch(e){ return null; }
+}
+async function fbSet(path, value){
+  try{
+    await fetch(`${FIREBASE_URL}/${path}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(value)
+    });
+    return true;
+  }catch(e){ return false; }
+}
+// 🔧 عشان الاقتراحات توصلك على إيميلك مباشرة: سجّلي مجانًا في formspree.io،
+// أنشئ فورم جديد بإيميل LAMYABINHASSAN@gmail.com، وحط رابط الـ endpoint هنا:
+const FORMSPREE_ENDPOINT = ""; // مثال: "https://formspree.io/f/xxxxxxxx"
+
+const DATA = [
+  {
+    "city": "الرياض",
+    "flag": "🇸🇦",
+    "center": [
+      24.7136,
+      46.6753
+    ],
+    "zoom": 11,
+    "cafes": [
+      {
+        "name": "Just A nother",
+        "lat": 24.71354,
+        "lng": 46.65553,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7672504649760525589?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://maps.app.goo.gl/yJRJgpHx3UWdM8kt6",
+        "likes": 0,
+        "verified": false,
+        "linkConfirmed": true
+      },
+      {
+        "name": "Melted Butter",
+        "lat": 24.74804,
+        "lng": 46.7003,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7670437179096681749?is_from_webapp=1&sender_device=pc&web_id=7667463713172047377",
+        "gmaps": "https://maps.app.goo.gl/AbTFbcZ154kA3pRe6",
+        "likes": 0,
+        "verified": false,
+        "linkConfirmed": true
+      },
+      {
+        "name": "For Coffee",
+        "lat": 24.68707,
+        "lng": 46.63787,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7668209812043320596?is_from_webapp=1&sender_device=pc&web_id=7667463713172047377",
+        "gmaps": "https://maps.app.goo.gl/gDBfY7yaXbyDbpkE6",
+        "likes": 0,
+        "verified": false,
+        "linkConfirmed": true
+      },
+      {
+        "name": "SUGARHIVE",
+        "lat": 24.75638,
+        "lng": 46.67648,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7666492719446904084?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://maps.app.goo.gl/7tziYpu7bBwkBcwt6",
+        "likes": 0,
+        "verified": false,
+        "linkConfirmed": true
+      },
+      {
+        "name": "DU Ble",
+        "lat": 24.69784,
+        "lng": 46.70301,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7665623060850003220?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://maps.app.goo.gl/KH6gdfpGF63RcaNFA",
+        "likes": 0,
+        "verified": false,
+        "linkConfirmed": true
+      },
+      {
+        "name": "Bearu",
+        "lat": 24.7454,
+        "lng": 46.66999,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7665223706163105044?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://maps.app.goo.gl/eKfkJVMo9XD4ib8k7",
+        "likes": 0,
+        "verified": false,
+        "linkConfirmed": true
+      },
+      {
+        "name": "Carve",
+        "lat": 24.73305,
+        "lng": 46.68754,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7663569556153191701?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://maps.app.goo.gl/JNQ3LmBAPukyJ2yd6",
+        "likes": 0,
+        "verified": false,
+        "linkConfirmed": true
+      },
+      {
+        "name": "CU",
+        "lat": 24.69389,
+        "lng": 46.68676,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7663107904530156820?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://maps.app.goo.gl/m5sJmSZiZ4bfN6i39",
+        "likes": 0,
+        "verified": false,
+        "linkConfirmed": true
+      },
+      {
+        "name": "Sure",
+        "lat": 24.74118,
+        "lng": 46.68965,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7661674508046044437?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://maps.app.goo.gl/kZb7yn9KRaSVt61VA",
+        "likes": 77,
+        "verified": false,
+        "linkConfirmed": true
+      },
+      {
+        "name": "LLABATE Speciality Coffee",
+        "lat": 24.8241224,
+        "lng": 46.585927,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7661230747507756309?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/LLABATE%20Speciality%20Coffee",
+        "likes": 18,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Mubherah Speciality Coffees",
+        "lat": 24.71321,
+        "lng": 46.70126,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7660601979718192405?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Speciality%20Coffees",
+        "likes": 28,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "قود ميت good mate",
+        "lat": 24.7510977,
+        "lng": 46.6397685,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7659410284511087893?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%82%D9%88%D8%AF%20%D9%85%D9%8A%D8%AA%20good%20mate",
+        "likes": 38,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "THE SIFT",
+        "lat": 24.7546874,
+        "lng": 46.6098427,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7659090088227327252?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857 ",
+        "gmaps": "https://www.google.com/maps/search/THE%20SIFT",
+        "likes": 102,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Belmont",
+        "lat": 24.7330264,
+        "lng": 46.6452109,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7658726001165290772?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857\nhttps://www.tiktok.com/@blackcoffee.sa/photo/7506997383113280776?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857 ",
+        "gmaps": "https://www.google.com/maps/search/Belmont",
+        "likes": 33,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "La Dose Café",
+        "lat": 24.7806178,
+        "lng": 46.6245474,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7658519317155155220?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/La%20Dose%20Caf%C3%A9",
+        "likes": 14,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "IOTA",
+        "lat": 24.7723996,
+        "lng": 46.6524455,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7656532260337749269?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/IOTA",
+        "likes": 18,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "CIAO!",
+        "lat": 24.7780171,
+        "lng": 46.6614719,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7655805648784854293?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/CIAO%21",
+        "likes": 30,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "King Fahd",
+        "lat": 24.7415059,
+        "lng": 46.670538,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7655314269625486612?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/King%20Fahd",
+        "likes": 35,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Deki coffee",
+        "lat": 24.792298,
+        "lng": 46.6487902,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7655021749561478421?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Deki%20coffee",
+        "likes": 31,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Double Three Coffee",
+        "lat": 24.7323945,
+        "lng": 46.6104977,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7653500939306814740?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Double%20Three%20Coffee",
+        "likes": 40,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "respire an narjis | تنفس النرجس",
+        "lat": 24.8372388,
+        "lng": 46.6661261,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7652076546546470164?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/respire%20an%20narjis%20%7C%20%D8%AA%D9%86%D9%81%D8%B3%20%D8%A7%D9%84%D9%86%D8%B1%D8%AC%D8%B3",
+        "likes": 25,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Brillant Bakery & Coffee",
+        "lat": 24.7685274,
+        "lng": 46.6476415,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7652076546546470164?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Brillant%20Bakery%20%26%20Coffee",
+        "likes": 122,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "هيتكا | hetkia",
+        "lat": 24.7322437,
+        "lng": 46.6757459,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7651499915876601108?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%87%D9%8A%D8%AA%D9%83%D8%A7%20%7C%20hetkia",
+        "likes": 248,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Place And People | بليس اند بيبول",
+        "lat": 24.7810883,
+        "lng": 46.5799501,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7650868434560945429?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Place%20And%20People%20%7C%20%D8%A8%D9%84%D9%8A%D8%B3%20%D8%A7%D9%86%D8%AF%20%D8%A8%D9%8A%D8%A8%D9%88%D9%84",
+        "likes": 28,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Carbone Riyadh",
+        "lat": 24.7837525,
+        "lng": 46.6530464,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7650215232161336596?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Carbone%20Riyadh",
+        "likes": 77,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "NASJ | نسج الملقا",
+        "lat": 24.8090598,
+        "lng": 46.5894651,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7649126397981560085?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/NASJ%20%7C%20%D9%86%D8%B3%D8%AC%20%D8%A7%D9%84%D9%85%D9%84%D9%82%D8%A7",
+        "likes": 226,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "CHINO",
+        "lat": 24.7719789,
+        "lng": 46.6157237,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7647648458081373460?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/CHINO",
+        "likes": 22,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "SCALE CAFE & BAR سكيل كافيه",
+        "lat": 24.7193329,
+        "lng": 46.6725654,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7644497362597104916?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/SCALE%20CAFE%20%26%20BAR%20%D8%B3%D9%83%D9%8A%D9%84%20%D9%83%D8%A7%D9%81%D9%8A%D9%87",
+        "likes": 352,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "AND COFFEE - & COFFEE",
+        "lat": 24.6664952,
+        "lng": 46.6832766,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7644231828513443093?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/AND%20COFFEE%20-%20%26%20COFFEE",
+        "likes": 70,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Joe Barrel Coffee",
+        "lat": 24.7194802,
+        "lng": 46.6725255,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7643850737604349205?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Joe%20Barrel%20Coffee",
+        "likes": 67,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "HAWI",
+        "lat": 24.8215373,
+        "lng": 46.6040737,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7643106120009059604?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/HAWI",
+        "likes": 48,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "طَول كافيه | Tul cafe",
+        "lat": 24.70283,
+        "lng": 46.67495,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7642668025644141845?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%B7%D9%8E%D9%88%D9%84%20%D9%83%D8%A7%D9%81%D9%8A%D9%87%20%7C%20Tul%20cafe",
+        "likes": 42,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Chic",
+        "lat": 24.70812,
+        "lng": 46.67565,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7642419618635697428?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Chic",
+        "likes": 86,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Deffa Cafe & Library",
+        "lat": 24.737502,
+        "lng": 46.6633939,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7640505950289284373?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Deffa%20Cafe%20%26%20Library",
+        "likes": 53,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Markab - مركب",
+        "lat": 24.7376542,
+        "lng": 46.6633059,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7640225637172595989?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Markab%20-%20%D9%85%D8%B1%D9%83%D8%A8",
+        "likes": 364,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Hanoverian",
+        "lat": 24.7531213,
+        "lng": 46.6395224,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7639756476130741525?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Hanoverian",
+        "likes": 37,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "زميم",
+        "lat": 24.8085137,
+        "lng": 46.613305,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7637956631078112533?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%B2%D9%85%D9%8A%D9%85",
+        "likes": 57,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Blumen Cafe",
+        "lat": 24.6927319,
+        "lng": 46.6740994,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7637203605837352212?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Blumen%20Cafe",
+        "likes": 59,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "REZONE COFFEE",
+        "lat": 24.8108473,
+        "lng": 46.6032611,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7636418755303623957?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/REZONE%20COFFEE",
+        "likes": 77,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Carbonado Cafe/مقهى كاربونادو",
+        "lat": 24.72965,
+        "lng": 46.66343,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7635980565556088084?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Carbonado%20Cafe/%D9%85%D9%82%D9%87%D9%89%20%D9%83%D8%A7%D8%B1%D8%A8%D9%88%D9%86%D8%A7%D8%AF%D9%88",
+        "likes": 63,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Basementers Roastery and Specialty coffee",
+        "lat": 24.74936,
+        "lng": 46.64151,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7635750765558074644?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Basementers%20Roastery%20and%20Specialty%20coffee",
+        "likes": 170,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "ركيزة",
+        "lat": 24.68884,
+        "lng": 46.71819,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7635007628749475093?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://maps.app.goo.gl/4ew4EzPsmjpxW9xZ7",
+        "likes": 81,
+        "verified": false,
+        "linkConfirmed": true
+      },
+      {
+        "name": "ناب النرجس | nap Narjis",
+        "lat": 24.68901,
+        "lng": 46.71411,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7634613237757234452?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%86%D8%A7%D8%A8%20%D8%A7%D9%84%D9%86%D8%B1%D8%AC%D8%B3%20%7C%20nap%20Narjis",
+        "likes": 50,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Caffeination",
+        "lat": 24.69088,
+        "lng": 46.71336,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7634136993231818004?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Caffeination",
+        "likes": 67,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Boulevard Flower Gardens",
+        "lat": 24.7116,
+        "lng": 46.67302,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7633834290526145812?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Boulevard%20Flower%20Gardens",
+        "likes": 110,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Café Boulud",
+        "lat": 24.72216,
+        "lng": 46.69193,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7633527464760724757?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Caf%C3%A9%20Boulud",
+        "likes": 68,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Saddle House Riyadh",
+        "lat": 24.74309,
+        "lng": 46.65752,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7632398953996324117?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Saddle%20House%20Riyadh",
+        "likes": 136,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Ralph's Coffee (KAFD)",
+        "lat": 24.73012,
+        "lng": 46.69633,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7632302740332449045?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Ralph%27s%20Coffee%20%28KAFD%29",
+        "likes": 52,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Jadeel Coffee",
+        "lat": 24.74692,
+        "lng": 46.72014,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7631675044674063637?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Jadeel%20Coffee",
+        "likes": 112,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "KAFD",
+        "lat": 24.6933,
+        "lng": 46.69995,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7606361536072060181?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/KAFD",
+        "likes": 93,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "KAFD",
+        "lat": 24.68885,
+        "lng": 46.6512,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7606361536072060181?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/KAFD",
+        "likes": 72,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Pret A Manger",
+        "lat": 24.69972,
+        "lng": 46.70079,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7630462408795983125?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Pret%20A%20Manger",
+        "likes": 157,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "An Nakheel",
+        "lat": 24.72844,
+        "lng": 46.65148,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7630042378212101396?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/An%20Nakheel",
+        "likes": 341,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Apple Butter Riyadh",
+        "lat": 24.71224,
+        "lng": 46.66171,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7629693880992140564?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Apple%20Butter%20Riyadh",
+        "likes": 150,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "DRAFT Café",
+        "lat": 24.69921,
+        "lng": 46.65368,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7629371338448309524?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/DRAFT%20Caf%C3%A9",
+        "likes": 57,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Wee",
+        "lat": 24.73906,
+        "lng": 46.63522,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7628942951472794900?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Wee",
+        "likes": 525,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "INFUSE",
+        "lat": 24.75539,
+        "lng": 46.6839,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7628696561769352469?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/INFUSE",
+        "likes": 79,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Boulevard Riyadh City",
+        "lat": 24.69595,
+        "lng": 46.69641,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7598508813460851986?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/Boulevard%20Riyadh%20City",
+        "likes": 140,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Dyar Bakery",
+        "lat": 24.71487,
+        "lng": 46.69773,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7627948383684300053?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/Dyar%20Bakery",
+        "likes": 80,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Coffee Address | عنوان القهوة",
+        "lat": 24.69934,
+        "lng": 46.6369,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7627553724709293332?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Coffee%20Address%20%7C%20%D8%B9%D9%86%D9%88%D8%A7%D9%86%20%D8%A7%D9%84%D9%82%D9%87%D9%88%D8%A9",
+        "likes": 37,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Toby's Estate (KAFD)",
+        "lat": 24.69879,
+        "lng": 46.70645,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7627226754629029140?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Toby%27s%20Estate%20%28KAFD%29",
+        "likes": 93,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "ســينابـون هـــوم بـيستري | Cinnabon Home Pastry",
+        "lat": 24.69545,
+        "lng": 46.68151,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7627182851250801940?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/%D8%B3%D9%80%D9%80%D9%8A%D9%86%D8%A7%D8%A8%D9%80%D9%88%D9%86%20%D9%87%D9%80%D9%80%D9%80%D9%88%D9%85%20%D8%A8%D9%80%D9%8A%D8%B3%D8%AA%D8%B1%D9%8A%20%7C%20Cinnabon%20Home%20Pastry",
+        "likes": 71,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "تروبيكا الغدير tropika",
+        "lat": 24.70437,
+        "lng": 46.64135,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7626768251720158485?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/%D8%AA%D8%B1%D9%88%D8%A8%D9%8A%D9%83%D8%A7%20%D8%A7%D9%84%D8%BA%D8%AF%D9%8A%D8%B1%20tropika",
+        "likes": 60,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "dr.CAFE Aqiq Park | د.كيف حديقة العقيق | Manual Brew",
+        "lat": 24.70758,
+        "lng": 46.63361,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7626329339432406293?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/dr.CAFE%20Aqiq%20Park%20%7C%20%D8%AF.%D9%83%D9%8A%D9%81%20%D8%AD%D8%AF%D9%8A%D9%82%D8%A9%20%D8%A7%D9%84%D8%B9%D9%82%D9%8A%D9%82%20%7C%20Manual%20Brew",
+        "likes": 57,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Kaseb Concept - Speciality Cafe",
+        "lat": 24.72964,
+        "lng": 46.6745,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7625972801396067605?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Kaseb%20Concept%20-%20Speciality%20Cafe",
+        "likes": 106,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "OUT OF LINE Bakery & Coffee roasters",
+        "lat": 24.67291,
+        "lng": 46.69332,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7625632961202982165?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/OUT%20OF%20LINE%20Bakery%20%26%20Coffee%20roasters",
+        "likes": 76,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Blumen Cafe | بلومن كافيه",
+        "lat": 24.70594,
+        "lng": 46.71161,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7625357282443889941?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/Blumen%20Cafe%20%7C%20%D8%A8%D9%84%D9%88%D9%85%D9%86%20%D9%83%D8%A7%D9%81%D9%8A%D9%87",
+        "likes": 108,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "PEACOCK Roaste & Cafe",
+        "lat": 24.71957,
+        "lng": 46.67292,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7625183798203796756?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/PEACOCK%20Roaste%20%26%20Cafe",
+        "likes": 54,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Kultúra كلتورا",
+        "lat": 24.75537,
+        "lng": 46.71823,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7624603741055962389?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Kult%C3%BAra%20%D9%83%D9%84%D8%AA%D9%88%D8%B1%D8%A7",
+        "likes": 182,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Green Bottle",
+        "lat": 24.7486,
+        "lng": 46.64667,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7624181347837529365?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Green%20Bottle",
+        "likes": 138,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "حنطية النرجس",
+        "lat": 24.70156,
+        "lng": 46.68218,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7623871238670142740?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/%D8%AD%D9%86%D8%B7%D9%8A%D8%A9%20%D8%A7%D9%84%D9%86%D8%B1%D8%AC%D8%B3",
+        "likes": 86,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Pistrina Bakery بسترينا بيكري",
+        "lat": 24.69557,
+        "lng": 46.64608,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7623457545042300180?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/Pistrina%20Bakery%20%D8%A8%D8%B3%D8%AA%D8%B1%D9%8A%D9%86%D8%A7%20%D8%A8%D9%8A%D9%83%D8%B1%D9%8A",
+        "likes": 276,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "مقهى ومحمصة جيشا",
+        "lat": 24.72051,
+        "lng": 46.69199,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7622739543153708309?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%85%D9%82%D9%87%D9%89%20%D9%88%D9%85%D8%AD%D9%85%D8%B5%D8%A9%20%D8%AC%D9%8A%D8%B4%D8%A7",
+        "likes": 109,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Taibah Markets",
+        "lat": 24.71862,
+        "lng": 46.66772,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7621969398403730709?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Taibah%20Markets",
+        "likes": 63,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "SOL OLAS",
+        "lat": 24.71317,
+        "lng": 46.63049,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7621493634877361429?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/SOL%20OLAS",
+        "likes": 154,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "MID-SAJJ",
+        "lat": 24.73844,
+        "lng": 46.69794,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7621205000680885524?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/MID-SAJJ",
+        "likes": 81,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Golden Cloud Coffee Roaster",
+        "lat": 24.66878,
+        "lng": 46.68524,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7620931777963560213?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Golden%20Cloud%20Coffee%20Roaster",
+        "likes": 100,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "norm",
+        "lat": 24.75508,
+        "lng": 46.64919,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7619750559607819541?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/norm",
+        "likes": 48,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Munat Cafe",
+        "lat": 24.72184,
+        "lng": 46.67793,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7618343570990189845?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/Munat%20Cafe",
+        "likes": 66,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "KAFD Nights - ليالي كافد",
+        "lat": 24.73845,
+        "lng": 46.67946,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7617962982462590228?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/KAFD%20Nights%20-%20%D9%84%D9%8A%D8%A7%D9%84%D9%8A%20%D9%83%D8%A7%D9%81%D8%AF",
+        "likes": 60,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Sleek",
+        "lat": 24.71515,
+        "lng": 46.69198,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7617138830075874581?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Sleek",
+        "likes": 59,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "NAGWA نقوة",
+        "lat": 24.69044,
+        "lng": 46.6523,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7616425645630967061?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/NAGWA%20%D9%86%D9%82%D9%88%D8%A9",
+        "likes": 66,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "CREF Cookies",
+        "lat": 24.71542,
+        "lng": 46.69434,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7614964867212053780?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/CREF%20Cookies",
+        "likes": 48,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "CAFE L'OCCITANE",
+        "lat": 24.6725,
+        "lng": 46.68562,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7614602132183960853?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/CAFE%20L%27OCCITANE",
+        "likes": 110,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "وثبة Wathbah Specialty Coffee & Books",
+        "lat": 24.73466,
+        "lng": 46.70403,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7613895220735921429?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/Wathbah%20Specialty%20Coffee%20%26%20Books",
+        "likes": 37,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "شاهي سمر",
+        "lat": 24.71979,
+        "lng": 46.69464,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7612374964804521236?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%B4%D8%A7%D9%87%D9%8A%20%D8%B3%D9%85%D8%B1",
+        "likes": 36,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "NAD Coffee",
+        "lat": 24.70249,
+        "lng": 46.66881,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7612015054698990868?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/NAD%20Coffee",
+        "likes": 74,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "CHOCOMELT",
+        "lat": 24.71239,
+        "lng": 46.65209,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7611634610987994388?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/CHOCOMELT",
+        "likes": 190,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "LOCAIS",
+        "lat": 24.68418,
+        "lng": 46.63966,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7611247980372315413?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/LOCAIS",
+        "likes": 389,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Veni",
+        "lat": 24.75306,
+        "lng": 46.68098,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7610849668460743957?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Veni",
+        "likes": 22,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Wajna",
+        "lat": 24.67251,
+        "lng": 46.636,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7610510236612414740?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Wajna",
+        "likes": 59,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Crops",
+        "lat": 24.68799,
+        "lng": 46.6464,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7610134455038053653?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Crops",
+        "likes": 35,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "respire an narjis | تنفس النرجس",
+        "lat": 24.8372388,
+        "lng": 46.6661261,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7609753580618255636?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/respire%20an%20narjis%20%7C%20%D8%AA%D9%86%D9%81%D8%B3%20%D8%A7%D9%84%D9%86%D8%B1%D8%AC%D8%B3",
+        "likes": 106,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Axes",
+        "lat": 24.70093,
+        "lng": 46.6822,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7609412890239585557?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Axes",
+        "likes": 46,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Hakwah Speciality Coffee | حكوة للقهوة المختصة",
+        "lat": 24.74109,
+        "lng": 46.65024,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7609044900146941204?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Hakwah%20Speciality%20Coffee%20%7C%20%D8%AD%D9%83%D9%88%D8%A9%20%D9%84%D9%84%D9%82%D9%87%D9%88%D8%A9%20%D8%A7%D9%84%D9%85%D8%AE%D8%AA%D8%B5%D8%A9",
+        "likes": 38,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Value Cafe",
+        "lat": 24.75099,
+        "lng": 46.70816,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7608676774033329428?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Value%20Cafe",
+        "likes": 49,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Jazel speciality cafe - جازل قهوة مختصة",
+        "lat": 24.6783,
+        "lng": 46.66822,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7608332785115335956?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Jazel%20speciality%20cafe%20-%20%D8%AC%D8%A7%D8%B2%D9%84%20%D9%82%D9%87%D9%88%D8%A9%20%D9%85%D8%AE%D8%AA%D8%B5%D8%A9",
+        "likes": 127,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Cafe Tale",
+        "lat": 24.68795,
+        "lng": 46.6653,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7607550451839601940?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Cafe%20Tale",
+        "likes": 171,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "CAF LAB I Olaya",
+        "lat": 24.74776,
+        "lng": 46.64502,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7606757767424118036?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/CAF%20LAB%20I%20Olaya",
+        "likes": 62,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Riyadh",
+        "lat": 24.75809,
+        "lng": 46.70808,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7606361536072060181?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Riyadh",
+        "likes": 173,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Ghemar",
+        "lat": 24.75546,
+        "lng": 46.70739,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7605636041042627861?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Ghemar",
+        "likes": 329,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "محمصة وقهوة إدمي | IDMI COFFEE",
+        "lat": 24.67932,
+        "lng": 46.7035,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7604960155129662740?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%85%D8%AD%D9%85%D8%B5%D8%A9%20%D9%88%D9%82%D9%87%D9%88%D8%A9%20%D8%A5%D8%AF%D9%85%D9%8A%20%7C%20IDMI%20COFFEE",
+        "likes": 114,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "وودن كوفي | Wooden coffee",
+        "lat": 24.72376,
+        "lng": 46.67801,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7604519834776309012?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%88%D9%88%D8%AF%D9%86%20%D9%83%D9%88%D9%81%D9%8A%20%7C%20Wooden%20coffee",
+        "likes": 65,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Also 60 Avenue",
+        "lat": 24.72184,
+        "lng": 46.67752,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7604171393562873109?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Also%2060%20Avenue",
+        "likes": 422,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Solitaire",
+        "lat": 24.75714,
+        "lng": 46.65222,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7604092755429641493?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Solitaire",
+        "likes": 63,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Ralph’s Coffee Diplomatic Quarter",
+        "lat": 24.74466,
+        "lng": 46.69123,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7603703554028621077?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Ralph%E2%80%99s%20Coffee%20Diplomatic%20Quarter",
+        "likes": 519,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Brunch & Cake KAFD",
+        "lat": 24.72561,
+        "lng": 46.66103,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7603407145949777172?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Brunch%20%26%20Cake%20KAFD",
+        "likes": 232,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "9th Street Coffee Roasters",
+        "lat": 24.71746,
+        "lng": 46.71588,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7602203192067296532?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/9th%20Street%20Coffee%20Roasters",
+        "likes": 91,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Noxy Cafe | نوكسي كافيه",
+        "lat": 24.73942,
+        "lng": 46.67497,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7601833996821073172?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Noxy%20Cafe%20%7C%20%D9%86%D9%88%D9%83%D8%B3%D9%8A%20%D9%83%D8%A7%D9%81%D9%8A%D9%87",
+        "likes": 95,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Ons Coffee Roasters",
+        "lat": 24.75641,
+        "lng": 46.69383,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7599190611094260999?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Ons%20Coffee%20Roasters",
+        "likes": 160,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Boulevard Riyadh City",
+        "lat": 24.74016,
+        "lng": 46.66322,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7598508813460851986?is_from_webapp=1&sender_device=pc",
+        "gmaps": "https://www.google.com/maps/search/Boulevard%20Riyadh%20City",
+        "likes": 74,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Le Pain Bakery",
+        "lat": 24.68881,
+        "lng": 46.69541,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7597744977229204744?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Le%20Pain%20Bakery",
+        "likes": 401,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "مقهى ومحمصة graph",
+        "lat": 24.73621,
+        "lng": 46.72024,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7597451080158481682?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%85%D9%82%D9%87%D9%89%20%D9%88%D9%85%D8%AD%D9%85%D8%B5%D8%A9%20graph",
+        "likes": 164,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "وايت سبريد white spread",
+        "lat": 24.7568,
+        "lng": 46.65685,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7597010084341796104?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%88%D8%A7%D9%8A%D8%AA%20%D8%B3%D8%A8%D8%B1%D9%8A%D8%AF%20white%20spread",
+        "likes": 67,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Dried | درايد",
+        "lat": 24.69926,
+        "lng": 46.6504,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7596645993949564178?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Dried%20%7C%20%D8%AF%D8%B1%D8%A7%D9%8A%D8%AF",
+        "likes": 69,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Acres Coffee Roaster | محمصة ومقهى ايكرز",
+        "lat": 24.68785,
+        "lng": 46.67736,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7596340769812794632?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Acres%20Coffee%20Roaster%20%7C%20%D9%85%D8%AD%D9%85%D8%B5%D8%A9%20%D9%88%D9%85%D9%82%D9%87%D9%89%20%D8%A7%D9%8A%D9%83%D8%B1%D8%B2",
+        "likes": 137,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "المحل | Mahal",
+        "lat": 24.69044,
+        "lng": 46.69703,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7596030581033520391?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%A7%D9%84%D9%85%D8%AD%D9%84%20%7C%20Mahal",
+        "likes": 86,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "A PLUS",
+        "lat": 24.73217,
+        "lng": 46.7189,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7595220769626492178?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/A%20PLUS",
+        "likes": 102,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "ذا زون The Zone",
+        "lat": 24.67816,
+        "lng": 46.68581,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7593843241624128775?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%B0%D8%A7%20%D8%B2%D9%88%D9%86%20The%20Zone",
+        "likes": 39,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "محمصة ومقهى قاف - Qaf Coffee Roasters",
+        "lat": 24.71459,
+        "lng": 46.6755,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7593092794428689671?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%85%D8%AD%D9%85%D8%B5%D8%A9%20%D9%88%D9%85%D9%82%D9%87%D9%89%20%D9%82%D8%A7%D9%81%20-%20Qaf%20Coffee%20Roasters",
+        "likes": 68,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "OUIA",
+        "lat": 24.72561,
+        "lng": 46.68889,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7591906253660605717?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/OUIA",
+        "likes": 68,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Riyadh",
+        "lat": 24.73623,
+        "lng": 46.66695,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7591217140879953172?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Riyadh",
+        "likes": 80,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "LADURÉE Cake Shop",
+        "lat": 24.68841,
+        "lng": 46.64268,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7590701583055277333?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/LADUR%C3%89E%20Cake%20Shop",
+        "likes": 54,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Liger cafe لايقر كافيه",
+        "lat": 24.75459,
+        "lng": 46.71364,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7589693133881888020?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Liger%20cafe%20%D9%84%D8%A7%D9%8A%D9%82%D8%B1%20%D9%83%D8%A7%D9%81%D9%8A%D9%87",
+        "likes": 89,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Breehant coffee roastery.",
+        "lat": 24.73745,
+        "lng": 46.6384,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7588998775960505620?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Breehant%20coffee%20roastery.",
+        "likes": 138,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "November Coffee",
+        "lat": 24.7546,
+        "lng": 46.71548,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7588078118812830997?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/November%20Coffee",
+        "likes": 54,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "respire al malqa | تنفس الملقا",
+        "lat": 24.71399,
+        "lng": 46.63661,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7587410072838343957?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/respire%20al%20malqa%20%7C%20%D8%AA%D9%86%D9%81%D8%B3%20%D8%A7%D9%84%D9%85%D9%84%D9%82%D8%A7",
+        "likes": 75,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "saharaa center",
+        "lat": 24.69514,
+        "lng": 46.67437,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7585694304044059925?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/saharaa%20center",
+        "likes": 498,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Fabrica de Cafe",
+        "lat": 24.73419,
+        "lng": 46.63965,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7498477252909354258?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Fabrica%20de%20Cafe",
+        "likes": 73,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "غندورة",
+        "lat": 24.67766,
+        "lng": 46.70339,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7584912364173102357?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%BA%D9%86%D8%AF%D9%88%D8%B1%D8%A9",
+        "likes": 85,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "OKAWA Cafe Al Narjis",
+        "lat": 24.67914,
+        "lng": 46.67655,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7584546859495001365?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/OKAWA%20Cafe%20Al%20Narjis",
+        "likes": 74,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Ornè Cafè",
+        "lat": 24.75348,
+        "lng": 46.67427,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7584094501182983444?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Orn%C3%A8%20Caf%C3%A8",
+        "likes": 78,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Sypology Coffee",
+        "lat": 24.75396,
+        "lng": 46.65508,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7583427644000177428?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Sypology%20Coffee",
+        "likes": 310,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Patchi Cafe",
+        "lat": 24.70684,
+        "lng": 46.63402,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7580824371883707666?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Patchi%20Cafe",
+        "likes": 57,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Harmony Cafe",
+        "lat": 24.71999,
+        "lng": 46.67451,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7580704134412684552?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Harmony%20Cafe",
+        "likes": 410,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Woool Coffee",
+        "lat": 24.72876,
+        "lng": 46.68093,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7579981617062825224?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Woool%20Coffee",
+        "likes": 110,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "متجر نادي الكتاب",
+        "lat": 24.73597,
+        "lng": 46.65,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7579654187672243464?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%85%D8%AA%D8%AC%D8%B1%20%D9%86%D8%A7%D8%AF%D9%8A%20%D8%A7%D9%84%D9%83%D8%AA%D8%A7%D8%A8",
+        "likes": 197,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Hasila | حصيلة",
+        "lat": 24.74963,
+        "lng": 46.68244,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7578962248467631378?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Hasila%20%7C%20%D8%AD%D8%B5%D9%8A%D9%84%D8%A9",
+        "likes": 85,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "oya فريمز المطل",
+        "lat": 24.6858,
+        "lng": 46.71372,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7575264870816419090?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%81%D8%B1%D9%8A%D9%85%D8%B2%20%D8%A7%D9%84%D9%85%D8%B7%D9%84",
+        "likes": 79,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Maqsid Quba",
+        "lat": 24.71698,
+        "lng": 46.70377,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7574712129631046930?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Maqsid%20Quba",
+        "likes": 37,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Hasila | حصيلة",
+        "lat": 24.73993,
+        "lng": 46.70412,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7573415353783553287?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Hasila%20%7C%20%D8%AD%D8%B5%D9%8A%D9%84%D8%A9",
+        "likes": 81,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Groon cafe",
+        "lat": 24.72617,
+        "lng": 46.68452,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7570775437849283858?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Groon%20cafe",
+        "likes": 127,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Gran Valley Resort",
+        "lat": 24.70757,
+        "lng": 46.6607,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7570363326274964754?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Gran%20Valley%20Resort",
+        "likes": 50,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "yann couvreur",
+        "lat": 24.68558,
+        "lng": 46.68501,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7567092925805481234?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Solitaire",
+        "likes": 154,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "FAV Coffee Room",
+        "lat": 24.6893,
+        "lng": 46.68442,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7565631989475216647?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/FAV%20Coffee%20Room",
+        "likes": 130,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "AJDEL أجدل",
+        "lat": 24.72309,
+        "lng": 46.65954,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7564518989641125138?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/AJDEL%20%D8%A3%D8%AC%D8%AF%D9%84",
+        "likes": 500,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "مركز جازلي التجاري",
+        "lat": 24.73886,
+        "lng": 46.6368,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7563772063635344658?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%85%D8%B1%D9%83%D8%B2%20%D8%AC%D8%A7%D8%B2%D9%84%D9%8A%20%D8%A7%D9%84%D8%AA%D8%AC%D8%A7%D8%B1%D9%8A",
+        "likes": 67,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Aim | Al Malqa",
+        "lat": 24.70458,
+        "lng": 46.66864,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7563363586442284295?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Aim%20%7C%20Al%20Malqa",
+        "likes": 92,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "NASJ | نسج الندى",
+        "lat": 24.74282,
+        "lng": 46.65663,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7563025695597677832?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/NASJ%20%7C%20%D9%86%D8%B3%D8%AC%20%D8%A7%D9%84%D9%86%D8%AF%D9%89",
+        "likes": 119,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Millefeuille",
+        "lat": 24.7426,
+        "lng": 46.69489,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7560796152145218823?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Millefeuille",
+        "likes": 65,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Some Coffee Bar",
+        "lat": 24.75473,
+        "lng": 46.65737,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7560423098596576520?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Some%20Coffee%20Bar",
+        "likes": 111,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "JAZEAN (Al-Bujari)",
+        "lat": 24.7504,
+        "lng": 46.65817,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7558209640572538130?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/JAZEAN%20%28Al-Bujari%29",
+        "likes": 74,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Haseel cafe & bakery",
+        "lat": 24.72389,
+        "lng": 46.64783,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7556327275868867848?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Haseel%20cafe%20%26%20bakery",
+        "likes": 107,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Eva Roasters And Specialty Coffee",
+        "lat": 24.69127,
+        "lng": 46.63753,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7555964886430289170?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Eva%20Roasters%20And%20Specialty%20Coffee",
+        "likes": 73,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "كنكة",
+        "lat": 24.67304,
+        "lng": 46.66446,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7555556948175867143?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%83%D9%86%D9%83%D8%A9",
+        "likes": 71,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "قهوة سلام | Salam Cafe",
+        "lat": 24.68189,
+        "lng": 46.64469,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7554874262314634514?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%82%D9%87%D9%88%D8%A9%20%D8%B3%D9%84%D8%A7%D9%85%20%7C%20Salam%20Cafe",
+        "likes": 32,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Just A Space",
+        "lat": 24.69122,
+        "lng": 46.71496,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7554462855345556744?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Just%20A%20Space",
+        "likes": 41,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "BK Garden",
+        "lat": 24.70749,
+        "lng": 46.66356,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7550020244660571400?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/BK%20Garden",
+        "likes": 291,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "BeFine Coffee",
+        "lat": 24.74739,
+        "lng": 46.70371,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7549626505169587464?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/BeFine%20Coffee",
+        "likes": 357,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Mefan | مفن",
+        "lat": 24.67778,
+        "lng": 46.70738,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7549257595207388434?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/DA%20NONNA%20ALSHAFA%20-%20%D8%AF%D8%A7%D9%86%D9%88%D9%86%D8%A7%20%D8%A7%D9%84%D8%B5%D8%AD%D8%A7%D9%81%D8%A9",
+        "likes": 99,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "فونتو كافيه",
+        "lat": 24.72846,
+        "lng": 46.6485,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7548928854363049234?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%81%D9%88%D9%86%D8%AA%D9%88%20%D9%83%D8%A7%D9%81%D9%8A%D9%87",
+        "likes": 80,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "SHOTS",
+        "lat": 51.5079769,
+        "lng": -0.1428077,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7548150844143783176?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/SHOTS",
+        "likes": 109,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "مقهى ومحمصة كوفيكا",
+        "lat": 24.6982,
+        "lng": 46.64177,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7544871024941223176?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%85%D9%82%D9%87%D9%89%20%D9%88%D9%85%D8%AD%D9%85%D8%B5%D8%A9%20%D9%83%D9%88%D9%81%D9%8A%D9%83%D8%A7",
+        "likes": 63,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "VEO Coffee Smaa Gallery",
+        "lat": 24.6878,
+        "lng": 46.69676,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7544733832621198600?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/VEO%20Coffee%20Smaa%20Gallery",
+        "likes": 72,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Lamm café",
+        "lat": 24.71978,
+        "lng": 46.67836,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7543333859706916114?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Lamm%20caf%C3%A9",
+        "likes": 87,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Godiva - Al Nakheel",
+        "lat": 24.70082,
+        "lng": 46.65852,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7540736837686660360?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Godiva%20-%20Al%20Nakheel",
+        "likes": 75,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "OUDE ATOMEN",
+        "lat": 24.68553,
+        "lng": 46.70641,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7538548011715120391?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/OUDE%20ATOMEN",
+        "likes": 55,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Ganache | جاناش",
+        "lat": 24.70202,
+        "lng": 46.64649,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7537762539367582984?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Ganache%20%7C%20%D8%AC%D8%A7%D9%86%D8%A7%D8%B4",
+        "likes": 103,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "VOLÁRE - فولاري‎",
+        "lat": 24.75658,
+        "lng": 46.67284,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7537043707552353544?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/VOL%C3%81RE%20-%20%D9%81%D9%88%D9%84%D8%A7%D8%B1%D9%8A%E2%80%8E",
+        "likes": 62,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Vibe coffee house",
+        "lat": 24.69965,
+        "lng": 46.67802,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7536597014314847493?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Vibe%20coffee%20house",
+        "likes": 37,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "القهوة المقطرة Drip Coffee",
+        "lat": 24.71358,
+        "lng": 46.67093,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7535200414262725896?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%A7%D9%84%D9%82%D9%87%D9%88%D8%A9%20%D8%A7%D9%84%D9%85%D9%82%D8%B7%D8%B1%D8%A9%20Drip%20Coffee",
+        "likes": 40,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Lumin roastery",
+        "lat": 24.7532,
+        "lng": 46.67623,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7533302513013918984?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Lumin%20roastery",
+        "likes": 93,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "حكاية مقهى مختص ومحمصة",
+        "lat": 24.74718,
+        "lng": 46.67205,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7531811105006636296?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%AD%D9%83%D8%A7%D9%8A%D8%A9%20%D9%85%D9%82%D9%87%D9%89%20%D9%85%D8%AE%D8%AA%D8%B5%20%D9%88%D9%85%D8%AD%D9%85%D8%B5%D8%A9",
+        "likes": 220,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "LAS CAFE - لاس كافيه (العليا)",
+        "lat": 24.74884,
+        "lng": 46.70386,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7531376156424162578?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/LAS%20CAFE%20-%20%D9%84%D8%A7%D8%B3%20%D9%83%D8%A7%D9%81%D9%8A%D9%87%20%28%D8%A7%D9%84%D8%B9%D9%84%D9%8A%D8%A7%29",
+        "likes": 173,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "L'ETO Brompton Road",
+        "lat": 24.67732,
+        "lng": 46.69018,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7529201500078312722?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/L%27ETO%20Brompton%20Road",
+        "likes": 99,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Repository Coffee Roasters",
+        "lat": 24.68097,
+        "lng": 46.63294,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7527753681685548306?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Repository%20Coffee%20Roasters",
+        "likes": 516,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Atmosphere Specialty Coffee",
+        "lat": 24.70148,
+        "lng": 46.65167,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7524318151752895752?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Atmosphere%20Specialty%20Coffee",
+        "likes": 92,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Oh Deer Bakery",
+        "lat": 24.7326,
+        "lng": 46.68616,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7524040149521501447?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Oh%20Deer%20Bakery",
+        "likes": 59,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "BK Boutique",
+        "lat": 24.70308,
+        "lng": 46.65981,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7522059382037810439?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/BK%20Boutique",
+        "likes": 61,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Urth Caffe",
+        "lat": 24.73436,
+        "lng": 46.688,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7521843688297860360?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Urth%20Caffe",
+        "likes": 62,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Served",
+        "lat": 24.67137,
+        "lng": 46.66548,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7520974809363221767?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Served",
+        "likes": 52,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Siwa",
+        "lat": 24.73443,
+        "lng": 46.70446,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7520363970398637320?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/The%20Esplanade%20Mall",
+        "likes": 76,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "NASJ | نسج الملقا",
+        "lat": 24.8090598,
+        "lng": 46.5894651,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7510582623815666962?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/NASJ%20%7C%20%D9%86%D8%B3%D8%AC%20%D8%A7%D9%84%D9%85%D9%84%D9%82%D8%A7",
+        "likes": 63,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "دوك | قهوة مختصة",
+        "lat": 24.74925,
+        "lng": 46.70694,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7505108546762132743?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%AF%D9%88%D9%83%D8%A7%20%7C%20%D9%82%D9%87%D9%88%D8%A9%20%D9%85%D8%AE%D8%AA%D8%B5%D8%A9",
+        "likes": 153,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "White",
+        "lat": 24.70709,
+        "lng": 46.70536,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7500689372220640520?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/White",
+        "likes": 63,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Ladurée Bretagne",
+        "lat": 24.67478,
+        "lng": 46.6868,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7499955294114483474?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Ladur%C3%A9e%20Bretagne",
+        "likes": 46,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Fabrica de Cafe",
+        "lat": 24.69833,
+        "lng": 46.64832,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7498477252909354258?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Fabrica%20de%20Cafe",
+        "likes": 36,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "EYA Specialty Coffee",
+        "lat": 24.70722,
+        "lng": 46.68668,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7498059107799190792?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/EYA%20Specialty%20Coffee",
+        "likes": 47,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Elixir Bunn Coffee Roasters",
+        "lat": 24.72451,
+        "lng": 46.68466,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7497688636381596936?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Elixir%20Bunn%20Coffee%20Roasters",
+        "likes": 73,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "L'ami Dave",
+        "lat": 24.721,
+        "lng": 46.63845,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7497336018484415751?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/L%27ami%20Dave",
+        "likes": 51,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "groovy | House of French Toast coffee shop",
+        "lat": 24.72698,
+        "lng": 46.66114,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7496910898766957842?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/groovy%20%7C%20House%20of%20French%20Toast%20coffee%20shop",
+        "likes": 62,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Sugar Hive",
+        "lat": 24.71105,
+        "lng": 46.72023,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7495869387765796103?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Sugar%20Hive",
+        "likes": 91,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "M&S cafe",
+        "lat": 24.6963,
+        "lng": 46.64878,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7495130532783705352?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/M%26S%20cafe",
+        "likes": 71,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Chestnut Bakery",
+        "lat": 24.72382,
+        "lng": 46.65699,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7494738909725756690?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Chestnut%20Bakery",
+        "likes": 105,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Secret Spot Bakery",
+        "lat": 24.7007,
+        "lng": 46.64831,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7494019625567390984?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Secret%20Spot%20Bakery",
+        "likes": 55,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "BRSK",
+        "lat": 24.68789,
+        "lng": 46.65094,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7492528926426713352?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/BRSK",
+        "likes": 54,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Dolce Ragusa | دولتشي راغوزا",
+        "lat": 24.68957,
+        "lng": 46.68752,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7491382204623359239?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Dolce%20Ragusa%20%7C%20%D8%AF%D9%88%D9%84%D8%AA%D8%B4%D9%8A%20%D8%B1%D8%A7%D8%BA%D9%88%D8%B2%D8%A7",
+        "likes": 45,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Alyasmin",
+        "lat": 24.72696,
+        "lng": 46.688,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7490262663348505863?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Alyasmin",
+        "likes": 67,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Algo",
+        "lat": 24.74007,
+        "lng": 46.7112,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7489909574208703752?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Al%20Malqa",
+        "likes": 101,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Social Cafe & Roastery",
+        "lat": 24.7494,
+        "lng": 46.63362,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7488425388557782280?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Social%20Cafe%20%26%20Roastery",
+        "likes": 36,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Ashjar Cafe",
+        "lat": 24.68841,
+        "lng": 46.71765,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7487688772390259975?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Ashjar%20Cafe",
+        "likes": 59,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Sica",
+        "lat": 24.70804,
+        "lng": 46.64495,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7487016256353144082?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Sica",
+        "likes": 28,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Puffery Bakery and Cafe",
+        "lat": 24.72788,
+        "lng": 46.71006,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7485096518601477394?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Puffery%20Bakery%20and%20Cafe",
+        "likes": 22,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Riyadh Park",
+        "lat": 24.74242,
+        "lng": 46.69013,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7485062646916599047?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Riyadh%20Park",
+        "likes": 21,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Three Cafe",
+        "lat": 24.7343,
+        "lng": 46.64562,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7484317268172623112?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Three%20Cafe",
+        "likes": 18,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "مقهى انعكاس",
+        "lat": 24.71796,
+        "lng": 46.63769,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7484015589946641672?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%85%D9%82%D9%87%D9%89%20%D8%A7%D9%86%D8%B9%D9%83%D8%A7%D8%B3",
+        "likes": 26,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Kicksters",
+        "lat": 24.70601,
+        "lng": 46.64407,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7483644401852419336?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Kicksters",
+        "likes": 35,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "جازلي كافيه",
+        "lat": 24.70161,
+        "lng": 46.6665,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7483611222470954258?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%AC%D8%A7%D8%B2%D9%84%D9%8A%20%D9%83%D8%A7%D9%81%D9%8A%D9%87",
+        "likes": 15,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "NASJ | نسج الملقا",
+        "lat": 24.8090598,
+        "lng": 46.5894651,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7480711540069436690?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/NASJ%20%7C%20%D9%86%D8%B3%D8%AC%20%D8%A7%D9%84%D9%85%D9%84%D9%82%D8%A7",
+        "likes": 15,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Lumiere Centre",
+        "lat": 24.7257,
+        "lng": 46.65262,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7480269545190591762?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Lumiere%20Centre",
+        "likes": 29,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "باو pao",
+        "lat": 24.72343,
+        "lng": 46.64385,
+        "tiktok": " https://www.tiktok.com/@blackcoffee.sa/video/7480260516796042503?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%A8%D8%A7%D9%88%20pao",
+        "likes": 38,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "غصن اريس | Aris branch‎",
+        "lat": 24.7408,
+        "lng": 46.71284,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7479794804239420680?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%BA%D8%B5%D9%86%20%D8%A7%D8%B1%D9%8A%D8%B3%20%7C%20Aris%20branch%E2%80%8E",
+        "likes": 15,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "مقهى ومحمصة وودز (الياسمين) | (WOODS Cafe and Roastery (Al Yasmin",
+        "lat": 24.744,
+        "lng": 46.64391,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7478076545781828872?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%85%D9%82%D9%87%D9%89%20%D9%88%D9%85%D8%AD%D9%85%D8%B5%D8%A9%20%D9%88%D9%88%D8%AF%D8%B2%20%28%D8%A7%D9%84%D9%8A%D8%A7%D8%B3%D9%85%D9%8A%D9%86%29%20%7C%20%28WOODS%20Cafe%20and%20Roastery%20%28Al%20Yasmin",
+        "likes": 26,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Volume Coffee Roasters",
+        "lat": 24.75126,
+        "lng": 46.71002,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7477934947966192914?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Volume%20Coffee%20Roasters",
+        "likes": 19,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "The table",
+        "lat": 24.71338,
+        "lng": 46.69531,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7477689340978564359?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/The%20table",
+        "likes": 16,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Sand clock",
+        "lat": 24.68474,
+        "lng": 46.71577,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7476960113652272402?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Sand%20clock",
+        "likes": 35,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "قهوة عصفورة",
+        "lat": 24.74872,
+        "lng": 46.64281,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7476542909056126226?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%82%D9%87%D9%88%D8%A9%20%D8%B9%D8%B5%D9%81%D9%88%D8%B1%D8%A9",
+        "likes": 47,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Dunkin' Donuts",
+        "lat": 24.71779,
+        "lng": 46.65225,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7476187194646891794?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Dunkin%27%20Donuts",
+        "likes": 6,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Home Bakery",
+        "lat": 24.70717,
+        "lng": 46.69219,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7476187194646891794?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Home%20Bakery",
+        "likes": 23,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Doka Bakery&Cafe&Pastry دوكة النخيل",
+        "lat": 24.70594,
+        "lng": 46.70905,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7476185918819290386?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Doka%20Bakery%26Cafe%26Pastry%20%D8%AF%D9%88%D9%83%D8%A9%20%D8%A7%D9%84%D9%86%D8%AE%D9%8A%D9%84",
+        "likes": 20,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Good neighbor",
+        "lat": 24.74733,
+        "lng": 46.67105,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7476163164648803592?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Good%20neighbor",
+        "likes": 27,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Andarena Cafe",
+        "lat": 24.75747,
+        "lng": 46.70389,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7475474807157509384?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Andarena%20Cafe",
+        "likes": 17,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "CAF LAB I Olaya",
+        "lat": 24.68466,
+        "lng": 46.63048,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7474688865236765958?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/CAF%20LAB%20I%20Olaya",
+        "likes": 11,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Café Bateel - Oud Square Al Safarat",
+        "lat": 24.70507,
+        "lng": 46.69951,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7474370957184978181?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Caf%C3%A9%20Bateel%20-%20Oud%20Square%20Al%20Safarat",
+        "likes": 12,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Breehant coffee roastery.",
+        "lat": 24.68972,
+        "lng": 46.63054,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7473586011214220552?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Breehant%20coffee%20roastery.",
+        "likes": 17,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Easy Bakery",
+        "lat": 24.73574,
+        "lng": 46.64808,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7473191166960356616?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Easy%20Bakery",
+        "likes": 35,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Shajiah",
+        "lat": 24.69655,
+        "lng": 46.69582,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7472807279868366088?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Shajiah",
+        "likes": 15,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "محمصة ومقهى سيرين | فرع قرطبة",
+        "lat": 24.74751,
+        "lng": 46.63175,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7472314532350790919?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%85%D8%AD%D9%85%D8%B5%D8%A9%20%D9%88%D9%85%D9%82%D9%87%D9%89%20%D8%B3%D9%8A%D8%B1%D9%8A%D9%86%20%7C%20%D9%81%D8%B1%D8%B9%20%D9%82%D8%B1%D8%B7%D8%A8%D8%A9",
+        "likes": 37,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Camel Step",
+        "lat": 24.75854,
+        "lng": 46.67131,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7472071287435742471?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Camel%20Step",
+        "likes": 11,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "CARVE COFFEE BAR",
+        "lat": 24.73946,
+        "lng": 46.71728,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7470630152196607250?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/CARVE%20COFFEE%20BAR",
+        "likes": 21,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Kin",
+        "lat": 24.70215,
+        "lng": 46.66807,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7470252964997844232?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Kin",
+        "likes": 102,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "OUT OF LINE Bakery & Coffee Roasters",
+        "lat": 24.68588,
+        "lng": 46.71715,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7470235252670090514?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/OUT%20OF%20LINE%20Bakery%20%26%20Coffee%20Roasters",
+        "likes": 20,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "JAVA TIME",
+        "lat": 24.69334,
+        "lng": 46.69285,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7470224700522695944?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/JAVA%20TIME",
+        "likes": 9,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Namq cafe",
+        "lat": 24.68278,
+        "lng": 46.67933,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7469795237775346962?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Namq%20cafe",
+        "likes": 13,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Arabica cafe",
+        "lat": 24.69114,
+        "lng": 46.65059,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7469477249687751944?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Arabica%20cafe",
+        "likes": 21,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "ROW l رو",
+        "lat": 24.71235,
+        "lng": 46.64279,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7469473656695999751?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/ROW%20l%20%D8%B1%D9%88",
+        "likes": 26,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Osla Cafe",
+        "lat": 24.73917,
+        "lng": 46.69872,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7469451752220298504?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Osla%20Cafe",
+        "likes": 10,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "inside out",
+        "lat": 24.74004,
+        "lng": 46.66359,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7469134115720285458?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Al%20Malqa",
+        "likes": 8,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Boulevard World",
+        "lat": 24.73701,
+        "lng": 46.64938,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7468770203057343751?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Boulevard%20World",
+        "likes": 11,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Boulevard World",
+        "lat": 24.682,
+        "lng": 46.65655,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7468770203057343751?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Boulevard%20World",
+        "likes": 30,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Costa Cafe",
+        "lat": 24.7185,
+        "lng": 46.69325,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7468430922774351112?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Costa%20Cafe",
+        "likes": 37,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Paul Bakery & Restaurant",
+        "lat": 24.74203,
+        "lng": 46.67951,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7468339591905299720?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Paul%20Bakery%20%26%20Restaurant",
+        "likes": 10,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "7 Grams",
+        "lat": 24.72523,
+        "lng": 46.65604,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7468279346201890066?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/7%20Grams",
+        "likes": 25,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Floated",
+        "lat": 24.6863,
+        "lng": 46.65451,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7468029040599911688?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Floated",
+        "likes": 20,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "هقوة",
+        "lat": 24.73321,
+        "lng": 46.71555,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7468020768194972935?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%87%D9%82%D9%88%D8%A9",
+        "likes": 49,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Toby's Estate (Olaya)",
+        "lat": 24.68111,
+        "lng": 46.71756,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7467496962695138568?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Toby%27s%20Estate%20%28Olaya%29",
+        "likes": 14,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Al Malqa",
+        "lat": 24.72747,
+        "lng": 46.69012,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7467195749021895943?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Al%20Malqa",
+        "likes": 13,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "RATIO Speciality Coffee",
+        "lat": 24.69677,
+        "lng": 46.64686,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7466940609584958738?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/RATIO%20Speciality%20Coffee",
+        "likes": 20,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "The Esplanade Mall",
+        "lat": 24.726102,
+        "lng": 46.6427444,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7466487419156647175?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/The%20Esplanade%20Mall",
+        "likes": 134,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Hanoverian",
+        "lat": 24.7531213,
+        "lng": 46.6395224,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7465853465269521672?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Hanoverian",
+        "likes": 110,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Century Corner",
+        "lat": 24.70615,
+        "lng": 46.70017,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7465773737258847496?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Century%20Corner",
+        "likes": 3,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "محمصة هجين سبوت | Hjeen Roaster Spot",
+        "lat": 24.74296,
+        "lng": 46.65245,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7464961509806918930?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D9%85%D8%AD%D9%85%D8%B5%D8%A9%20%D9%87%D8%AC%D9%8A%D9%86%20%D8%B3%D8%A8%D9%88%D8%AA%20%7C%20Hjeen%20Roaster%20Spot",
+        "likes": 3,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Butter bakery",
+        "lat": 24.69896,
+        "lng": 46.64783,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7464659395817868552?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Butter%20bakery",
+        "likes": 6,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Susam Cafe",
+        "lat": 24.72116,
+        "lng": 46.65936,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7463684344473832712?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Susam%20Cafe",
+        "likes": 3,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Butter bakery",
+        "lat": 24.75388,
+        "lng": 46.66945,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7463204671608474898?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Butter%20bakery",
+        "likes": 3,
+        "verified": false,
+        "linkConfirmed": false
+      }
+    ]
+  },
+  {
+    "city": "سويسرا",
+    "flag": "🇨🇭",
+    "center": [
+      46.8182,
+      8.2275
+    ],
+    "zoom": 7,
+    "cafes": [
+      {
+        "name": "Falken Thun",
+        "lat": 46.7580762,
+        "lng": 7.6275639,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7517710750329097480?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Falken%20Thun",
+        "likes": 98,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Oeschinen Lake",
+        "lat": 46.4989089,
+        "lng": 7.7291063,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7517592406729051399?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Oeschinen%20Lake",
+        "likes": 74,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Boutique Hotel Glacier",
+        "lat": 46.6214798,
+        "lng": 8.0303292,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7517410231962357000?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Boutique%20Hotel%20Glacier",
+        "likes": 88,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Montreux Arctic Juice & Café",
+        "lat": 47.06885,
+        "lng": 8.41719,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7514359071730961671?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Montreux",
+        "likes": 28,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Swiss Alps",
+        "lat": 46.5601061,
+        "lng": 8.5610781,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7513943036397751570?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Swiss%20Alps",
+        "likes": 43,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Harder Kulm",
+        "lat": 46.6973247,
+        "lng": 7.851656,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7513118163802803464?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Harder%20Kulm",
+        "likes": 36,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Lake Brienz",
+        "lat": 46.7267426,
+        "lng": 7.9674729,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7512038326053080328?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Lake%20Brienz",
+        "likes": 18,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Harder Kulm",
+        "lat": 46.6973247,
+        "lng": 7.851656,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7512036645663755528?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Harder%20Kulm",
+        "likes": 28,
+        "verified": true,
+        "linkConfirmed": false
+      }
+    ]
+  },
+  {
+    "city": "لندن",
+    "flag": "🇬🇧",
+    "center": [
+      51.5074,
+      -0.1278
+    ],
+    "zoom": 11,
+    "cafes": [
+      {
+        "name": "City of London",
+        "lat": 51.5134068,
+        "lng": -0.0890441,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7547053411988999431?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/City%20of%20London",
+        "likes": 47,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "City of London",
+        "lat": 51.5134068,
+        "lng": -0.0890441,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7546670620021509383?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/City%20of%20London",
+        "likes": 33,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Fait Maison — Berkeley Street Piccadilly",
+        "lat": 51.5082961,
+        "lng": -0.1430185,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7546176617174027538?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Fait%20Maison%20%E2%80%94%20Berkeley%20Street%20Piccadilly",
+        "likes": 32,
+        "verified": true,
+        "linkConfirmed": false
+      },
+      {
+        "name": "City of London",
+        "lat": 51.5134068,
+        "lng": -0.0890441,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7464157368792665362?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/City%20of%20London",
+        "likes": 31,
+        "verified": true,
+        "linkConfirmed": false
+      }
+    ]
+  },
+  {
+    "city": "مصر",
+    "flag": "🇪🇬",
+    "center": [
+      30.0444,
+      31.2357
+    ],
+    "zoom": 6,
+    "cafes": [
+      {
+        "name": "Aroya Cruise",
+        "lat": 29.80655,
+        "lng": 31.21291,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7601480245585120532?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Aroya%20Cruise",
+        "likes": 103,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Aroya Cruise",
+        "lat": 29.92533,
+        "lng": 31.0405,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7601250912706907413?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Aroya%20Cruise",
+        "likes": 58,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Aroya Cruise",
+        "lat": 29.94963,
+        "lng": 31.40438,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7601245278867590420?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Aroya%20Cruise",
+        "likes": 97,
+        "verified": false,
+        "linkConfirmed": false
+      }
+    ]
+  },
+  {
+    "city": "دبي",
+    "flag": "🇦🇪",
+    "center": [
+      25.2048,
+      55.2708
+    ],
+    "zoom": 11,
+    "cafes": [
+      {
+        "name": "Voyager Café &",
+        "lat": 25.24196,
+        "lng": 55.25417,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7553193841755426055?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Voyager%20Caf%C3%A9%20%26",
+        "likes": 55,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "bkry",
+        "lat": 25.19727,
+        "lng": 55.25907,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7552830109569355026?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/bkry",
+        "likes": 751,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Black Sheep Coffee - Yas Mall",
+        "lat": 25.1988,
+        "lng": 55.28825,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7551799044809460999?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Black%20Sheep%20Coffee%20-%20Yas%20Mall",
+        "likes": 205,
+        "verified": false,
+        "linkConfirmed": false
+      }
+    ]
+  },
+  {
+    "city": "ايطاليا",
+    "flag": "🇮🇹",
+    "center": [
+      43.5,
+      11.5
+    ],
+    "zoom": 6,
+    "cafes": [
+      {
+        "name": "Milan",
+        "lat": 42.96097,
+        "lng": 11.72512,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7519822741848018183?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Milan",
+        "likes": 35,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Lake Como",
+        "lat": 43.10062,
+        "lng": 11.27005,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7512940164734307592?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Lake%20Como",
+        "likes": 37,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Italia Como",
+        "lat": 43.89844,
+        "lng": 11.44383,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7512374264029269266?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Italia%20Como",
+        "likes": 23,
+        "verified": false,
+        "linkConfirmed": false
+      }
+    ]
+  },
+  {
+    "city": "البحرين",
+    "flag": "🇧🇭",
+    "center": [
+      26.0667,
+      50.5577
+    ],
+    "zoom": 11,
+    "cafes": [
+      {
+        "name": "بوابة البحرين",
+        "lat": 26.07949,
+        "lng": 50.55395,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7471672970436447495?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/%D8%A8%D9%88%D8%A7%D8%A8%D8%A9%20%D8%A7%D9%84%D8%A8%D8%AD%D8%B1%D9%8A%D9%86",
+        "likes": 10,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Brunch & Cake Al Bujairi",
+        "lat": 26.08206,
+        "lng": 50.58179,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7471398971663994130?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Brunch%20%26%20Cake%20Al%20Bujairi",
+        "likes": 10,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Seef Mall",
+        "lat": 26.09168,
+        "lng": 50.5871,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7471390699624123656?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Seef%20Mall",
+        "likes": 12,
+        "verified": false,
+        "linkConfirmed": false
+      }
+    ]
+  },
+  {
+    "city": "فرنسا",
+    "flag": "🇫🇷",
+    "center": [
+      46.6034,
+      1.8883
+    ],
+    "zoom": 6,
+    "cafes": [
+      {
+        "name": "Lake Annecy",
+        "lat": 46.21443,
+        "lng": 1.65593,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/photo/7517300853288471826?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Lake%20Annecy",
+        "likes": 486,
+        "verified": false,
+        "linkConfirmed": false
+      },
+      {
+        "name": "Chalet 4810",
+        "lat": 46.18275,
+        "lng": 1.35144,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7514609359700184327?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/Chalet%204810",
+        "likes": 26,
+        "verified": false,
+        "linkConfirmed": false
+      }
+    ]
+  },
+  {
+    "city": "المالديف",
+    "flag": "🇲🇻",
+    "center": [
+      3.2028,
+      73.2207
+    ],
+    "zoom": 8,
+    "cafes": [
+      {
+        "name": "The Maldives",
+        "lat": 3.2443,
+        "lng": 73.10015,
+        "tiktok": "https://www.tiktok.com/@blackcoffee.sa/video/7647935308277107989?is_from_webapp=1&sender_device=pc&web_id=7662797719976035857",
+        "gmaps": "https://www.google.com/maps/search/The%20Maldives",
+        "likes": 139,
+        "verified": false,
+        "linkConfirmed": false
+      }
+    ]
+  }
+];
+
+let map, markersLayer, activeIndex = 0;
+
+function initMap(){
+  map = L.map('map', { zoomControl:false, attributionControl:false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    subdomains: ['a','b','c']
+  }).addTo(map);
+  L.control.zoom({ position:'bottomleft' }).addTo(map);
+  markersLayer = L.layerGroup().addTo(map);
+  // بعض الأحيان الخريطة تُحسب بحجم خاطئ إذا كانت داخل عنصر لسا يتحرك بالأنيميشن — نجبرها تعيد الحساب
+  setTimeout(() => map.invalidateSize(), 300);
+  window.addEventListener('resize', () => map.invalidateSize());
+}
+
+function renderStamps(){
+  const wrap = document.getElementById('stamps');
+  wrap.innerHTML = '';
+  DATA.forEach((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'stamp' + (i === activeIndex ? ' active' : '');
+    el.innerHTML = `<span class="flag">${c.flag}</span>${c.city}<span class="count">${String(c.cafes.length).padStart(2,'0')} قهوة</span>`;
+    el.onclick = () => selectCity(i);
+    wrap.appendChild(el);
+  });
+}
+
+function renderMap(city){
+  markersLayer.clearLayers();
+  map.setView(city.center, city.zoom);
+  city.cafes.forEach(cafe => {
+    const marker = L.circleMarker([cafe.lat, cafe.lng], {
+      radius: cafe.verified ? 9 : 7,
+      color: cafe.verified ? '#0b2545' : '#7fa8c9',
+      weight: 2,
+      fillColor: cafe.verified ? '#3fa9dc' : '#b9d7ea',
+      fillOpacity: cafe.verified ? 0.95 : 0.6
+    }).addTo(markersLayer);
+    marker.bindPopup(`
+      <div class="popup-title">☕ ${cafe.name}</div>
+      ${cafe.verified ? '' : '<div style="font-size:10.5px;color:#8a97a6;margin:-4px 0 6px;">📍 موقع تقريبي — الدقيق برابط قوقل ماب</div>'}
+      <div class="popup-actions">
+        <a class="tiktok" href="${cafe.tiktok}" target="_blank" rel="noopener">فيديو تيك توك</a>
+        <a href="${cafe.gmaps}" target="_blank" rel="noopener">قوقل ماب</a>
+      </div>
+    `);
+  });
+}
+
+function renderList(city){
+  document.getElementById('listTitle').textContent = `قهاوي ${city.city}`;
+  document.getElementById('listSub').textContent = `${String(city.cafes.length).padStart(2,'0')} توقف موثّق`;
+  const list = document.getElementById('cafeList');
+  list.innerHTML = '';
+  city.cafes.forEach((cafe, idx) => {
+    const card = document.createElement('div');
+    card.className = 'ticket';
+    card.id = 'card-' + slugify(city.city + '-' + cafe.name + '-' + idx);
+    const code = `BC-${String(idx+1).padStart(3,'0')}`;
+    const ratingKey = 'rating:' + slugify(city.city + '-' + cafe.name);
+    card.innerHTML = `
+      <div class="ticket-main">
+        <span class="ticket-code">${code}</span>
+        <div class="ticket-name">${cafe.name}</div>
+        <div class="ticket-city">${city.flag} ${city.city}${cafe.verified ? ' · <span style="color:var(--wine)">✓ موقع مؤكد</span>' : ''}</div>
+        <div class="stars-row" data-key="${ratingKey}">
+          <div class="stars">${[1,2,3,4,5].map(n => `<span class="star" data-val="${n}">★</span>`).join('')}</div>
+          <span class="rating-meta">جارِ التحميل…</span>
+        </div>
+        <div class="rate-panel">
+          <input class="comment-input" type="text" placeholder="تعليقك (اختياري)" maxlength="140">
+          <button class="confirm-btn" type="button">تم</button>
+        </div>
+        <div class="ticket-actions">
+          <a class="btn tiktok" href="${cafe.tiktok}" target="_blank" rel="noopener">تيك توك</a>
+          ${cafe.likes ? `<span class="likes-tag">🤍 ${cafe.likes}</span>` : ''}
+          <a class="btn gmaps" href="${cafe.gmaps}" target="_blank" rel="noopener">الموقع</a>
+          <button class="edit-btn" data-city="${activeIndex}" data-cafe="${idx}" title="تعديل الروابط">✏️</button>
+        </div>
+      </div>
+      <div class="ticket-stub"><span class="stub-num">${code}</span></div>
+    `;
+    list.appendChild(card);
+    setupRating(card, ratingKey);
+    const editBtn = card.querySelector('.edit-btn');
+    if (ownerMode) editBtn.classList.add('show');
+    editBtn.addEventListener('click', () => openEditModal(activeIndex, idx));
+  });
+}
+
+function renderStats(){
+  document.getElementById('statCities').textContent = DATA.length;
+  document.getElementById('statCafes').textContent = DATA.reduce((s,c) => s + c.cafes.length, 0);
+}
+
+function selectCity(i){
+  activeIndex = i;
+  renderStamps();
+  renderMap(DATA[i]);
+  renderList(DATA[i]);
+}
+
+function slugify(str){
+  return str.replace(/\s+/g,'-').replace(/[^\w\-\u0600-\u06FF]/g,'');
+}
+
+async function getRating(key){
+  const data = await fbGet(`ratings/${key}`);
+  return data || { sum:0, count:0 };
+}
+
+async function saveRating(key, data){
+  await fbSet(`ratings/${key}`, data);
+}
+
+function paintStars(row, avg, userVal){
+  const stars = row.querySelectorAll('.star');
+  const display = userVal || Math.round(avg);
+  stars.forEach(s => {
+    s.classList.toggle('filled', Number(s.dataset.val) <= display);
+  });
+}
+
+async function saveComment(key, comment){
+  if (!comment) return;
+  let list = await fbGet(`comments/${key}`);
+  if (!Array.isArray(list)) list = [];
+  list.push(comment);
+  if (list.length > 50) list = list.slice(-50);
+  await fbSet(`comments/${key}`, list);
+}
+
+async function setupRating(card, key){
+  const row = card.querySelector('.stars-row');
+  const meta = row.querySelector('.rating-meta');
+  const panel = card.querySelector('.rate-panel');
+  const input = card.querySelector('.comment-input');
+  const confirmBtn = card.querySelector('.confirm-btn');
+
+  let data = await getRating(key);
+  let avg = data.count ? (data.sum / data.count) : 0;
+  let pending = 0;
+  let locked = false;
+
+  paintStars(row, avg, 0);
+  meta.textContent = data.count ? `${avg.toFixed(1)} · ${data.count} تقييم` : 'كن أول من يقيّم';
+
+  const stars = row.querySelectorAll('.star');
+  stars.forEach(star => {
+    star.addEventListener('mouseenter', () => { if (!locked) paintStars(row, 0, Number(star.dataset.val)); });
+    star.addEventListener('mouseleave', () => { if (!locked) paintStars(row, avg, pending || 0); });
+    star.addEventListener('click', () => {
+      if (locked) return;
+      pending = Number(star.dataset.val);
+      paintStars(row, 0, pending);
+      panel.classList.add('show');
+    });
+  });
+
+  confirmBtn.addEventListener('click', async () => {
+    if (locked || !pending) return;
+    data.sum += pending;
+    data.count += 1;
+    avg = data.sum / data.count;
+    await saveRating(key, data);
+    await saveComment(key, input.value.trim());
+    locked = true;
+    paintStars(row, avg, pending);
+    meta.innerHTML = `${avg.toFixed(1)} · ${data.count} تقييم <span class="rated-thanks">شكرًا ✓</span>`;
+    input.disabled = true;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = '✓';
+    stars.forEach(s => s.style.pointerEvents = 'none');
+  });
+}
+
+function setupSponsorButton(){
+  const btn = document.getElementById('sponsorEmailBtn');
+  const copiedMsg = document.getElementById('sponsorCopied');
+  document.getElementById('sponsorEmailText').textContent = SPONSOR_EMAIL;
+  btn.addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText(SPONSOR_EMAIL);
+    }catch(e){
+      // clipboard API unavailable — user can still read and copy manually
+    }
+    copiedMsg.classList.add('show');
+    setTimeout(() => copiedMsg.classList.remove('show'), 2000);
+  });
+}
+
+/* ---------- Custom (owner-added) cafes ---------- */
+const CUSTOM_KEY = 'customCafes';
+
+async function loadCustomCafes(){
+  const data = await fbGet(CUSTOM_KEY);
+  return Array.isArray(data) ? data : [];
+}
+
+async function saveCustomCafes(list){
+  await fbSet(CUSTOM_KEY, list);
+}
+
+const CITY_COORDS = {
+  'مكة': {flag:'🇸🇦', center:[21.3891,39.8579], zoom:12},
+  'مكة المكرمة': {flag:'🇸🇦', center:[21.3891,39.8579], zoom:12},
+  'جدة': {flag:'🇸🇦', center:[21.5433,39.1728], zoom:12},
+  'الدمام': {flag:'🇸🇦', center:[26.4207,50.0888], zoom:12},
+  'المدينة': {flag:'🇸🇦', center:[24.5247,39.5692], zoom:12},
+  'المدينة المنورة': {flag:'🇸🇦', center:[24.5247,39.5692], zoom:12},
+  'الطائف': {flag:'🇸🇦', center:[21.2703,40.4158], zoom:12},
+  'الخبر': {flag:'🇸🇦', center:[26.2172,50.1971], zoom:12},
+  'أبها': {flag:'🇸🇦', center:[18.2164,42.5053], zoom:12},
+  'تبوك': {flag:'🇸🇦', center:[28.3998,36.5715], zoom:11},
+  'حائل': {flag:'🇸🇦', center:[27.5114,41.7208], zoom:11},
+  'بريدة': {flag:'🇸🇦', center:[26.3260,43.9750], zoom:12},
+  'ينبع': {flag:'🇸🇦', center:[24.0895,38.0618], zoom:12},
+  'نجران': {flag:'🇸🇦', center:[17.4924,44.1277], zoom:11},
+  'جازان': {flag:'🇸🇦', center:[16.8892,42.5611], zoom:11},
+  'الأحساء': {flag:'🇸🇦', center:[25.3838,49.5859], zoom:11},
+};
+const DEFAULT_CITY_COORD = {flag:'📍', center:[23.8859,45.0792], zoom:6};
+
+function lookupCityMeta(cityName){
+  return CITY_COORDS[cityName.trim()] || DEFAULT_CITY_COORD;
+}
+
+function mergeCustomCafes(customList){
+  customList.forEach(c => {
+    let cityEntry = DATA.find(d => d.city === c.city);
+    if (!cityEntry){
+      const meta = { flag: c.cityFlag, center: c.cityCenter, zoom: c.cityZoom };
+      const fallback = lookupCityMeta(c.city);
+      cityEntry = {
+        city: c.city,
+        flag: meta.flag || fallback.flag,
+        center: meta.center || fallback.center,
+        zoom: meta.zoom || fallback.zoom,
+        cafes: []
+      };
+      DATA.push(cityEntry);
+    }
+    cityEntry.cafes.push({ name:c.name, lat:c.lat, lng:c.lng, tiktok:c.tiktok, gmaps:c.gmaps });
+  });
+}
+
+function jitterNear(center, spreadDeg){
+  return [
+    center[0] + (Math.random()-0.5) * spreadDeg,
+    center[1] + (Math.random()-0.5) * spreadDeg
+  ];
+}
+
+/* ---------- Owner: per-cafe link edits ---------- */
+const EDITS_KEY = 'cafeEdits';
+
+async function loadCafeEdits(){
+  const data = await fbGet(EDITS_KEY);
+  return data || {};
+}
+async function saveCafeEdits(edits){
+  await fbSet(EDITS_KEY, edits);
+}
+
+function editKeyFor(city, cafe){
+  return slugify(city.city + '-' + cafe.name);
+}
+
+function applyCafeEdits(edits){
+  DATA.forEach(city => {
+    city.cafes.forEach(cafe => {
+      const key = editKeyFor(city, cafe);
+      if (edits[key]){
+        if (edits[key].gmaps) cafe.gmaps = edits[key].gmaps;
+        if (edits[key].tiktok) cafe.tiktok = edits[key].tiktok;
+      }
+    });
+  });
+}
+
+let currentEdits = {};
+
+function openEditModal(cityIdx, cafeIdx){
+  const city = DATA[cityIdx];
+  const cafe = city.cafes[cafeIdx];
+  document.getElementById('editTitle').textContent = 'تعديل روابط: ' + cafe.name;
+  document.getElementById('editGmaps').value = cafe.gmaps;
+  document.getElementById('editTiktok').value = cafe.tiktok;
+  document.getElementById('editMsg').textContent = '';
+  document.getElementById('editSubmit').dataset.city = cityIdx;
+  document.getElementById('editSubmit').dataset.cafe = cafeIdx;
+  openModal('editOverlay');
+}
+
+function setupEditModal(){
+  document.getElementById('editCancel').addEventListener('click', () => closeModal('editOverlay'));
+  document.getElementById('editSubmit').addEventListener('click', async function(){
+    const cityIdx = Number(this.dataset.city);
+    const cafeIdx = Number(this.dataset.cafe);
+    const city = DATA[cityIdx];
+    const cafe = city.cafes[cafeIdx];
+    const gmaps = document.getElementById('editGmaps').value.trim();
+    const tiktok = document.getElementById('editTiktok').value.trim();
+    const msg = document.getElementById('editMsg');
+
+    if (!gmaps || !tiktok){
+      msg.textContent = 'عبّ الرابطين قبل الحفظ';
+      return;
+    }
+    cafe.gmaps = gmaps;
+    cafe.tiktok = tiktok;
+
+    const key = editKeyFor(city, cafe);
+    currentEdits[key] = { gmaps, tiktok };
+    await saveCafeEdits(currentEdits);
+
+    if (DATA[activeIndex] === city){
+      renderMap(city);
+      renderList(city);
+    }
+    msg.style.color = 'var(--wine)';
+    msg.textContent = 'تحدّث ✓';
+    setTimeout(() => closeModal('editOverlay'), 900);
+  });
+}
+
+/* ---------- Owner mode (PIN-gated) ---------- */
+let ownerMode = false;
+
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+function setupOwnerMode(){
+  const ownerLink = document.getElementById('ownerLink');
+  const pinOverlay = document.getElementById('pinOverlay');
+  const pinInput = document.getElementById('pinInput');
+  const pinMsg = document.getElementById('pinMsg');
+  const fab = document.getElementById('fabAdd');
+
+  ownerLink.addEventListener('click', () => {
+    if (ownerMode){
+      openModal('addOverlay');
+      return;
+    }
+    pinInput.value = '';
+    pinMsg.textContent = '';
+    openModal('pinOverlay');
+  });
+
+  document.getElementById('pinCancel').addEventListener('click', () => closeModal('pinOverlay'));
+
+  document.getElementById('pinSubmit').addEventListener('click', () => {
+    if (pinInput.value === OWNER_PIN){
+      ownerMode = true;
+      fab.classList.add('show');
+      document.querySelectorAll('.edit-btn').forEach(b => b.classList.add('show'));
+      closeModal('pinOverlay');
+      ownerLink.textContent = '🔓 وضع المالك مفعّل';
+    } else {
+      pinMsg.textContent = 'رمز غير صحيح';
+    }
+  });
+
+  fab.addEventListener('click', () => {
+    populateCitySelect();
+    document.getElementById('addMsg').textContent = '';
+    openModal('addOverlay');
+  });
+  document.getElementById('addCancel').addEventListener('click', () => closeModal('addOverlay'));
+
+  document.getElementById('addSubmit').addEventListener('click', async () => {
+    const name = document.getElementById('newName').value.trim();
+    const citySelectVal = document.getElementById('newCity').value;
+    const isOther = citySelectVal === '__other__';
+    const cityName = isOther ? document.getElementById('newCityOther').value.trim() : citySelectVal;
+    const gmaps = document.getElementById('newGmaps').value.trim();
+    const tiktok = document.getElementById('newTiktok').value.trim() || 'https://www.tiktok.com/@blackcoffee.sa';
+    const msg = document.getElementById('addMsg');
+
+    if (!name || !cityName || !gmaps){
+      msg.textContent = 'عبّ الاسم والمدينة ورابط قوقل ماب';
+      return;
+    }
+
+    let cityEntry = DATA.find(d => d.city === cityName);
+    let cityFlag, cityCenter, cityZoom;
+    if (!cityEntry){
+      const meta = lookupCityMeta(cityName);
+      cityFlag = meta.flag; cityCenter = meta.center; cityZoom = meta.zoom;
+      cityEntry = { city: cityName, flag: cityFlag, center: cityCenter, zoom: cityZoom, cafes: [] };
+      DATA.push(cityEntry);
+    } else {
+      cityFlag = cityEntry.flag; cityCenter = cityEntry.center; cityZoom = cityEntry.zoom;
+    }
+
+    const spread = cityEntry.zoom >= 10 ? 0.05 : 0.5;
+    const [lat, lng] = jitterNear(cityEntry.center, spread);
+
+    const newCafe = { city: cityName, name, gmaps, tiktok, lat, lng, cityFlag, cityCenter, cityZoom };
+    const list = await loadCustomCafes();
+    list.push(newCafe);
+    await saveCustomCafes(list);
+
+    cityEntry.cafes.push({ name, lat, lng, tiktok, gmaps });
+    renderStats();
+    renderStamps();
+    if (DATA[activeIndex].city === cityName){
+      renderMap(DATA[activeIndex]);
+      renderList(DATA[activeIndex]);
+    }
+    document.getElementById('newName').value = '';
+    document.getElementById('newGmaps').value = '';
+    document.getElementById('newTiktok').value = '';
+    populateCitySelect();
+    msg.style.color = 'var(--wine)';
+    msg.textContent = 'أُضيفت ✓ — تظهر الآن للجميع';
+  });
+}
+
+function populateCitySelect(){
+  const sel = document.getElementById('newCity');
+  sel.innerHTML = DATA.map(d => `<option value="${d.city}">${d.flag} ${d.city}</option>`).join('')
+    + `<option value="__other__">➕ مدينة أخرى</option>`;
+  document.getElementById('newCityOtherField').style.display = 'none';
+  document.getElementById('newCityOther').value = '';
+  sel.onchange = () => {
+    document.getElementById('newCityOtherField').style.display = (sel.value === '__other__') ? 'block' : 'none';
+  };
+}
+
+/* ---------- Search across all cities ---------- */
+function setupSearch(){
+  const input = document.getElementById('searchInput');
+  const results = document.getElementById('searchResults');
+  const clearBtn = document.getElementById('searchClear');
+
+  function runSearch(){
+    const q = input.value.trim().toLowerCase();
+    clearBtn.style.display = q ? 'block' : 'none';
+    if (!q){
+      results.classList.remove('show');
+      results.innerHTML = '';
+      return;
+    }
+    const matches = [];
+    DATA.forEach((city, cityIdx) => {
+      city.cafes.forEach((cafe, cafeIdx) => {
+        if (cafe.name.toLowerCase().includes(q)){
+          matches.push({ city, cityIdx, cafe, cafeIdx });
+        }
+      });
+    });
+
+    if (!matches.length){
+      results.innerHTML = `<div class="search-empty">ما انضافت — جرّب تضيفها 👆</div>`;
+    } else {
+      results.innerHTML = matches.slice(0, 10).map(m => `
+        <div class="search-result-item" data-city="${m.cityIdx}" data-cafe="${m.cafeIdx}">
+          <span class="search-result-name">${m.cafe.name}</span>
+          <span class="search-result-city">${m.city.flag} ${m.city.city}</span>
+        </div>
+      `).join('');
+    }
+    results.classList.add('show');
+  }
+
+  input.addEventListener('input', runSearch);
+  input.addEventListener('focus', () => { if (input.value.trim()) results.classList.add('show'); });
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    results.classList.remove('show');
+    clearBtn.style.display = 'none';
+  });
+
+  results.addEventListener('click', (e) => {
+    const item = e.target.closest('.search-result-item');
+    if (!item) return;
+    const cityIdx = Number(item.dataset.city);
+    const cafeIdx = Number(item.dataset.cafe);
+    selectCity(cityIdx);
+    results.classList.remove('show');
+    setTimeout(() => {
+      const cafe = DATA[cityIdx].cafes[cafeIdx];
+      const targetId = 'card-' + slugify(DATA[cityIdx].city + '-' + cafe.name + '-' + cafeIdx);
+      const el = document.getElementById(targetId);
+      if (el){
+        el.scrollIntoView({ behavior:'smooth', block:'center' });
+        el.classList.add('highlight');
+        setTimeout(() => el.classList.remove('highlight'), 2400);
+      }
+    }, 120);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-wrap')) results.classList.remove('show');
+  });
+}
+
+/* ---------- Visitor suggestions ---------- */
+const SUGGESTIONS_KEY = 'suggestions';
+
+async function loadSuggestions(){
+  const data = await fbGet(SUGGESTIONS_KEY);
+  return Array.isArray(data) ? data : [];
+}
+async function saveSuggestions(list){
+  await fbSet(SUGGESTIONS_KEY, list);
+}
+
+function setupSuggestions(){
+  const fab = document.getElementById('suggestFab');
+  const overlay = 'suggestOverlay';
+  const msg = document.getElementById('sugMsg');
+
+  fab.addEventListener('click', () => {
+    msg.textContent = '';
+    openModal(overlay);
+  });
+  document.getElementById('sugCancel').addEventListener('click', () => closeModal(overlay));
+
+  document.getElementById('sugSubmit').addEventListener('click', async () => {
+    const name = document.getElementById('sugName').value.trim();
+    const city = document.getElementById('sugCity').value.trim();
+    const gmaps = document.getElementById('sugGmaps').value.trim();
+    const note = document.getElementById('sugNote').value.trim();
+
+    if (!name || !city){
+      msg.textContent = 'عبّ الاسم والمدينة على الأقل';
+      return;
+    }
+    const list = await loadSuggestions();
+    list.push({ name, city, gmaps, note, date: new Date().toISOString() });
+    await saveSuggestions(list);
+    notifyByEmail({ name, city, gmaps, note });
+
+    document.getElementById('sugName').value = '';
+    document.getElementById('sugCity').value = '';
+    document.getElementById('sugGmaps').value = '';
+    document.getElementById('sugNote').value = '';
+    msg.style.color = 'var(--wine)';
+    msg.textContent = 'وصلنا اقتراحك، شكرًا ☕';
+    setTimeout(() => closeModal(overlay), 1400);
+  });
+}
+
+async function notifyByEmail(suggestion){
+  if (!FORMSPREE_ENDPOINT) return; // لسا ما تربط بـ Formspree — الاقتراح محفوظ بصندوق الوارد داخل الصفحة فقط
+  try{
+    await fetch(FORMSPREE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        _subject: `اقتراح قهوة جديد: ${suggestion.name}`,
+        الاسم: suggestion.name,
+        المدينة: suggestion.city,
+        قوقل_ماب: suggestion.gmaps || '—',
+        ملاحظة: suggestion.note || '—'
+      })
+    });
+  }catch(e){ /* الاقتراح محفوظ بالصندوق حتى لو فشل الإرسال بالإيميل */ }
+}
+
+/* ---------- Owner: suggestions inbox ---------- */
+function setupInbox(){
+  const inboxFab = document.getElementById('inboxFab');
+  const badge = document.getElementById('inboxBadge');
+
+  async function refreshBadge(){
+    const list = await loadSuggestions();
+    if (list.length){
+      badge.style.display = 'flex';
+      badge.textContent = list.length > 99 ? '99+' : list.length;
+    } else {
+      badge.style.display = 'none';
+    }
+    return list;
+  }
+
+  async function renderInbox(){
+    const list = await loadSuggestions();
+    const box = document.getElementById('inboxList');
+    if (!list.length){
+      box.innerHTML = `<p class="modal-sub" style="text-align:center;">لا توجد اقتراحات حاليًا</p>`;
+      return;
+    }
+    box.innerHTML = list.map((s, i) => `
+      <div class="suggestion-item" data-idx="${i}">
+        <div class="s-name">${s.name}</div>
+        <div class="s-meta">${s.city}${s.gmaps ? ' · <a href="'+s.gmaps+'" target="_blank" style="color:var(--wine)">قوقل ماب</a>' : ''}</div>
+        ${s.note ? `<div class="s-note">${s.note}</div>` : ''}
+        <div class="suggestion-actions">
+          <button class="s-btn use" data-action="use" data-idx="${i}">أضفها للخريطة</button>
+          <button class="s-btn dismiss" data-action="dismiss" data-idx="${i}">تجاهل</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  inboxFab.addEventListener('click', async () => {
+    await renderInbox();
+    openModal('inboxOverlay');
+  });
+  document.getElementById('inboxClose').addEventListener('click', () => closeModal('inboxOverlay'));
+
+  document.getElementById('inboxList').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.s-btn');
+    if (!btn) return;
+    const idx = Number(btn.dataset.idx);
+    const list = await loadSuggestions();
+    const s = list[idx];
+
+    if (btn.dataset.action === 'use'){
+      closeModal('inboxOverlay');
+      populateCitySelect();
+      document.getElementById('newName').value = s.name;
+      document.getElementById('newGmaps').value = s.gmaps || '';
+      const citySel = document.getElementById('newCity');
+      if ([...citySel.options].some(o => o.value === s.city)) citySel.value = s.city;
+      document.getElementById('addMsg').textContent = '';
+      openModal('addOverlay');
+    }
+    list.splice(idx, 1);
+    await saveSuggestions(list);
+    await refreshBadge();
+    if (btn.dataset.action === 'dismiss') await renderInbox();
+  });
+
+  return refreshBadge;
+}
+
+async function boot(){
+  const custom = await loadCustomCafes();
+  mergeCustomCafes(custom);
+  currentEdits = await loadCafeEdits();
+  applyCafeEdits(currentEdits);
+  initMap();
+  renderStats();
+  selectCity(0);
+  setupSponsorButton();
+  setupOwnerMode();
+  setupSearch();
+  setupSuggestions();
+  setupEditModal();
+  const refreshInboxBadge = setupInbox();
+  document.getElementById('pinSubmit').addEventListener('click', async () => {
+    if (ownerMode){
+      document.getElementById('inboxFab').classList.add('show');
+      await refreshInboxBadge();
+    }
+  });
+}
+
+boot();
+</script>
+
+</body>
+</html>
